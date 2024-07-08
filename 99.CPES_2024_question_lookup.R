@@ -43,15 +43,28 @@ table(question_mapping$question_type,useNA = c("always"))
 
 #create question lookup
 question_lookup <- question_mapping %>%
-  select(question,question_type,question_text,response_option,response_text,topic,cancercentreallocation,weighted)
+  select(question,question_type,question_text,response_option,response_text,topic,cancercentreallocation,weighted,pnn,`2018_question`,`2015_question`) %>%
+  rename(response_value = pnn) %>%
+  mutate(response_text_analysis = coalesce(response_value,response_text)) # for 04.CPES_2024_create_aggregate_results.R
+
+#Read in addendum mapping document which caters for the design of questions q47, q50 and q51 (Future proofing for codes 01, 02, 03 and 04)
+question_mapping_addendum <- read.xlsx(paste0(lookup_path,"CPES_2024_question_addendum.xlsx"),sheet = "Sheet1")
+question_lookup <- rbind(question_lookup,question_mapping_addendum)
+question_lookup <- question_lookup %>%
+  filter(question != 'q47a01' & question !='q47a02' & question !='q47a03' & question != 'q47a04' 
+         & question !='q47a05' & question !='q47a06' & question != 'q47a07' &
+           question != 'q47b01' & question !='q47b02' & question !='q47b03' & question != 'q47b04' 
+         & question !='q47b05' & question !='q47b06' & question != 'q47b07' &
+           question != 'q50a' & question !='q50b' & question !='q50c' & question != 'q50d' & question != 'q50e' &
+           question != 'q51a' & question !='q51b' & question !='q51c' & question != 'q51d' & question != 'q51e')
 
 #check if the same as before
 hist.file <- readRDS(paste0(lookup_path,"question_lookup.rds"))
 identical(hist.file,question_lookup)
 saveRDS(question_lookup, paste0(lookup_path,"question_lookup.rds"))
+write.xlsx(question_lookup, paste0(lookup_path,"question_lookup.xlsx"))
 
 allocation_questions <- unique(question_lookup$question[str_detect(question_mapping$question_type,"llocation") == TRUE])
 questions <- unique(question_lookup$question[question_lookup$question_type != "-"])
 saveRDS(allocation_questions, paste0(lookup_path,"allocation_questions.rds"))
 saveRDS(questions, paste0(lookup_path,"questions.rds"))
-
