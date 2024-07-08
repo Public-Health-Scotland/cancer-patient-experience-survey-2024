@@ -15,18 +15,21 @@ source("00.CPES_2024_set_up_packages.R")
 source("00.CPES_2024_set_up_file_paths.R")
 source("00.CPES_2024_functions.R")
 
-#Inputs: #UPDATE!
-#"Results from Contractor/SCC24_FINAL_Data_V1.xlsx"
-#"sample/2024.06.13_finalised_master_CPES_list.rds"
+#Inputs: 
+#data_path,"Results from Contractor/SCC24_FINAL_Data_V1.xlsx"
+#data_path,"sample/2024.06.13_finalised_master_CPES_list.rds"
 
-#Outputs: #UPDATE!
-#"Results from Contractor/Final_unrouted_data.rds"
-#"analysis_output/anonymised_unvalidated_response_data_with_patient_data_for_SG.rds"
-#"analysis_output/anonymised_unvalidated_response_data_with_patient_data_for_SG.xlsx"
+#Outputs: 
+#data_path,"Results from Contractor/Final_unrouted_data.rds"
+#analysis_output_path,analysis_output,"anonymised_unvalidated_response_data_with_patient_data_for_SG.rds"
+#analysis_output/"anonymised_unvalidated_response_data_with_patient_data_for_SG.xlsx"
+#rules_summary, file = "output/analysis_output/rules_summary.xlsx"
+#analysis_output_path,"validated_results.rds"
+#analysis_output_path,"validated_results.rds"
 
 #to do
-#RENAME VARIABLES (PatientRecordNumber = UniquePatientSurveyID)?
-##add patientid_SG? not needed as not sharing?
+#RENAME VARIABLES (PatientRecordNumber = UniquePatientSurveyID)? DONE 
+##add patientid_SG? DONE
 #Previously, missing was coded as 99 and no response as 88. In HACE, both would be coded to 0.
 #Here, I'm trying to code both as NA. Is this appropriate?
 #In HACE, tick all that apply questions are coded as 1 (Yes), 0 (No), and NA. Here, it's 1 ,2 and NA which I've retained for avoidance of confusion. Which is better?
@@ -36,21 +39,28 @@ source("00.CPES_2024_functions.R")
 #Step 1: Read in contractor data and master sample file####
 #Read in contractor data
 #opening final set of unrouted results received from contractor
-contractor_data <- read.xlsx(paste0(data_path,"Results from Contractor/SCC24_FINAL_Data_V1.xlsx"),sheet = "UNROUTED")
+contractor_data <- read.xlsx(paste0(data_path,"Results from Contractor/SCC24_FINAL_Data_V1_2.xlsx"),sheet = "UNROUTED")
 sum(duplicated(contractor_data$PatientRecordNumber))
+contractor_data2 <- read.xlsx(paste0(data_path,"Results from Contractor/SCC24_FINAL_Data_V1_2.xlsx"),sheet = "Non-Completes")
+sum(duplicated(contractor_data2$PatientRecordNumber))
+contractor_data <- rbind(contractor_data,contractor_data2)
+rm(contractor_data2)
 
-#Read in variables required from master sample file. This should cover both those that SG require, and those needed for PHS further analyses.
+##Read in variables required from master sample file. This should cover both those that SG require, and those needed for PHS further analyses. ####
 #Retain smr01_sex,age_group_chi,simd2020v2_sc_quintile_smr01,ur6_2020_smr01,ur6_2020_name_smr01,hscp2019,hscp2019name,smr01_hbtreat_keydate,smr01_hbres_keydate,
 #smr01_location,smr01_location2,smr01_locname,full_site_name,ECC_flag,smr06_stage,smr06_method_1st_detection
 #CH - do we need full site name? We do not need all of these tumour groupings. Need to remove once we have more clarity.
 master_sample_file <- readRDS(paste0(data_path,"sample/2024.06.13_finalised_master_CPES_list.rds")) 
+ls(master_sample_file)
 master_sample_file <- master_sample_file %>%
-  select(uniquepatientsurveyid, smr01_sex,smr01_sex_label,age_group_chi,simd2020v2_sc_quintile_smr01,ur6_2020_smr01,ur6_2020_name_smr01,
-         hscp2019,hscp2019name,smr01_hbtreat_keydate,board_of_treatment,smr01_hbres_keydate,board_of_residence,
+  select(uniquepatientsurveyid,smr01_sex,smr01_sex_label,age_chi,age_group_chi,simd2020v2_sc_quintile_smr01,ur6_2020_smr01,ur6_2020_name_smr01,
+         hscp2019,hscp2019name,smr01_hbtreat_keydate,board_of_treatment,smr01_hbres_keydate,board_of_residence,network_of_residence_smr01,network_of_treatment_smr01,
          smr01_location,smr01_location2,smr01_locname,full_site_name,smr06_stage,smr06_method_1st_detection,smr06_method_1st_detection_description,
-         tumour_group_smr06,tumour_group_2_smr06,tumour_group_text_smr06,cancer_type_smr06)
+         tumour_group_smr06,tumour_group_2_smr06,tumour_group_text_smr06,cancer_type_smr06,iqvia_exclude,additional_exclusion_flag)
 
 table(master_sample_file$smr06_method_1st_detection)
+table(master_sample_file$iqvia_exclude)
+table(master_sample_file$additional_exclusion_flag)
 
 # Match on population data from master sample file.
 contractor_data <- contractor_data %>% 
@@ -60,6 +70,26 @@ table(contractor_data$inmastersamplefile,useNA = c("always"))
 sum(duplicated(contractor_data$Participant.ID))
 sum(duplicated(contractor_data$uniquepatientsurveyid))
 nrow(contractor_data)  
+table(contractor_data$iqvia_exclude)
+table(contractor_data$additional_exclusion_flag)
+
+## Deaths: Were there any cases where: ####
+# * 1) the patient died, but completed the survey prior to death? Yes: 10 cases - these cases will remain in the sample.
+# * 2) the patient died, but this was not picked-up by NHSCR / CHILI? 
+#      (i.e. Notified by family and after last mailout day) Yes: 4 cases - these cases will be removed from the sample.
+table(contractor_data$iqvia_exclude,contractor_data$Response.Code,useNA = c("always"))
+## Code into respondents / non-respondents and remove patients who were excluded from the sample before final analysis. ####
+# * Recode Response.Code into patients who responded to the survey and those who did not. 
+# * Also flag patients who should be excluded from the sample (patients who had moved, were deceased, were ineligible or were distressed).
+contractor_data <- contractor_data %>% 
+  mutate(Responded = case_when(Response.Code == 1~ 1, #Responded
+                               Response.Code %in% c(4,6,NA) ~ 2, #Did not respond
+                               Response.Code %in% c(2, 3, 5, 7) ~ 3, #Exclude
+                               TRUE ~ 9))
+table(contractor_data$Responded,contractor_data$Response.Code,useNA = c("always"))
+table(contractor_data$Responded,useNA = c("always"))
+contractor_data <- contractor_data %>% 
+  filter(Responded != 3)
 
 #check variable names and classes
 ls(contractor_data)
@@ -68,14 +98,21 @@ sapply(contractor_data, class)
 #Rename Variables as necessary: 
 contractor_data <- contractor_data %>% 
   rename_with(tolower) %>% #all lower case
-  rename(patientid = patientrecordnumber) %>% #ch is this right? try to align with HACE
+  rename(patientid = patientrecordnumber) %>% 
   mutate(response.date.time = as.Date(response.date.time,origin = "1899-12-30")) %>% #reformat response date details
   rename(qh_psid = participant.id) %>%
   rename(responsecode = response.code) %>%  
   rename(responsesubcode = response.sub.code) %>%
-  rename(responsedatetime = response.date.time)
+  rename(responsedatetime = response.date.time) %>%
+  rename(network_of_tx = network_of_treatment_smr01) %>% # for 02.CPES_2024_add_weights.R
+  rename(network_of_residence_tx = network_of_residence_smr01) %>% # for 02.CPES_2024_add_weights.R
+  rename(board_of_tx = smr01_hbtreat_keydate) %>% # for 02.CPES_2024_add_weights.R
+  rename(board_of_residence_tx = smr01_hbres_keydate) %>% # for 02.CPES_2024_add_weights.R
+  rename(tumour_group_text = tumour_group_text_smr06) %>% # for 02.CPES_2024_add_weights.R
+  rename(sex = smr01_sex) %>% # for 02.CPES_2024_add_weights.R
+  rename(location_2 = smr01_location2) # for 03.CPES_2024_create_responses_longer.R
 
-#add patientid_SG
+## add patientid_SG ####
 index <- c(rep(1:nrow(contractor_data)))
 contractor_data <- contractor_data %>% 
   mutate(patientid_sg = paste0("Patsg",str_pad(index,6,c("left"),pad = "0"))) %>% 
@@ -85,20 +122,24 @@ contractor_data <- contractor_data %>%
 hist.file <- readRDS(paste0(data_path,"Results from Contractor/Final_unrouted_data.rds")) 
 identical(hist.file,contractor_data) 
 
-#Save out reformatted data
+##Save out reformatted data ####
 saveRDS(contractor_data, paste0(data_path,"Results from Contractor/Final_unrouted_data.rds"))
 
-##Create file to send on to SG on 17th June 2024 with unvalidated data results plus patient data that SG are allowed to hold.
+##Create file to send on to SG on 17th June 2024 with unvalidated data results plus patient data that SG are allowed to hold. ####
 sg_unrouted_data <- readRDS(paste0(data_path,"Results from Contractor/Final_unrouted_data.rds")) 
 
-#Produce final unrouted data file for SG
+##Produce final unrouted data file for SG ####
 sg_unrouted_data <- sg_unrouted_data %>%
-  select(-qh_psid,-paper.questionnaire.id,-patientid,-smr01_location,-smr01_location2,-full_site_name,-tumour_group_smr06,-tumour_group_2_smr06,-tumour_group_text_smr06,-cancer_type_smr06) %>%
+  select(-qh_psid,-paper.questionnaire.id,-patientid,-smr01_location,location_2,-full_site_name,-age_chi,
+         -network_of_residence_tx,-network_of_tx,
+         -tumour_group_smr06,-tumour_group_2_smr06,-tumour_group_text,-cancer_type_smr06,iqvia_exclude,additional_exclusion_flag) %>%
   relocate(patientid_sg, .before = responsecode) #relocate patientid_sg
+hist.file <- readRDS(paste0(analysis_output_path,"anonymised_unvalidated_response_data_with_patient_data_for_SG.rds")) 
+identical(hist.file,contractor_data) 
 
-#Save out file for SG data
-saveRDS(sg_unrouted_data, paste0(output_path,"analysis_output/anonymised_unvalidated_response_data_with_patient_data_for_SG.rds"))
-write.xlsx(sg_unrouted_data, paste0(output_path,"analysis_output/anonymised_unvalidated_response_data_with_patient_data_for_SG.xlsx"))
+##Save out file for SG data ####
+saveRDS(sg_unrouted_data, paste0(analysis_output_path,"anonymised_unvalidated_response_data_with_patient_data_for_SG.rds"))
+write.xlsx(sg_unrouted_data, paste0(analysis_output_path,"anonymised_unvalidated_response_data_with_patient_data_for_SG.xlsx"))
 
 #Step 2: Apply validation rules####
 unrouted_data <- readRDS(paste0(data_path,"Results from Contractor/Final_unrouted_data.rds"))
@@ -134,19 +175,41 @@ unrouted_data <- unrouted_data %>%  #apply rule
                           TRUE ~ q07b))
 tabyl(unrouted_data,q07a,q07b, useNA = c("always"))
 
-#b)	If respondent ticks any of (1,2)  (yes, no) set 5 (don’t know) to blank
+#b)	 If respondent ticks any of (1,2) (yes, no) and 5 (donÃ¢ÂÂt know) is also ticked, set 1,2 & 5 to blank
 Rule02b <- sum(if_else(unrouted_data$q07e == 1 & (unrouted_data$q07a == 1 | unrouted_data$q07b == 1),1,0),na.rm = TRUE)
 
-
-unrouted_data <- unrouted_data %>%  #apply rule
-  mutate(q07e = case_when(q07a == 1 | q07b == 1 ~ NA,
-                          TRUE ~ q07e))
-
+#Create temporary rule02b_flag
+unrouted_data$rule02b_flag <- 0
+unrouted_data <- unrouted_data %>%
+  mutate(rule02b_flag = if_else(q07e == 1 & (q07a == 1 | q07b == 1),1,0))
+#relocate rule02b_flag
+unrouted_data <- unrouted_data %>% relocate(rule02b_flag, .before = q01)
+table(unrouted_data$rule02b_flag)
+tabyl(unrouted_data,rule02b_flag, useNA = c("always"))
+table(unrouted_data$q07a)
+table(unrouted_data$q07b)
+table(unrouted_data$q07e)
 tabyl(unrouted_data,q07a,q07e)
 tabyl(unrouted_data,q07b,q07e)
 
+unrouted_data <- unrouted_data %>%  #apply rule
+  mutate(q07a = case_when(rule02b_flag == 1 ~ NA,
+                          TRUE ~ q07a),
+         q07b = case_when(rule02b_flag == 1 ~ NA,
+                          TRUE ~ q07b),
+         q07e = case_when(rule02b_flag == 1 ~ NA,
+                          TRUE ~ q07e))
+
+table(unrouted_data$q07a)
+table(unrouted_data$q07b)
+table(unrouted_data$q07e)
+tabyl(unrouted_data,q07a,q07e)
+tabyl(unrouted_data,q07b,q07e)
+#Remove temporary rule02b_flag
+unrouted_data$rule02b_flag <- NULL
+
 ## Rule 3: Q16: Have you had an operation, such as removal of a tumour or lump, for your cancer?####
-# Do we want to reverse code? Previous CPES surveys were. i.e. recode Q16 based on routed questions having a response other than ‘don’t know / can’t remember’.
+# Do we want to reverse code? Previous CPES surveys were. i.e. recode Q16 based on routed questions having a response other than Ã¢ÂÂdonÃ¢ÂÂt know / canÃ¢ÂÂt rememberÃ¢ÂÂ.
 # a) If Q16 is blank, and Q17 is in (1,2,3,4,5) or Q18 is in (1,2,3,4) or Q19 in (1,2) or Q20 is in (1,2) then set Q16 to 1 (Yes)
 # Or just
 # b) If Q16 ^1 (Yes), then set Q17 to Q20 to blank
@@ -156,14 +219,14 @@ lapply(unrouted_data[q17toq20],table,unrouted_data$q16,useNA = c("always")) #val
 table(unrouted_data$q16,useNA = c("always"))
 #Rule 3a: In how many cases did respondent fail to answer Q16, but gave a substantive answer to Q17-Q20?
 Rule03a <- sum(if_else(is.na(unrouted_data$q16) & 
-                    (unrouted_data$q17 %in% c(1,2,3,4,5)|unrouted_data$q18 %in% c(1,2,3,4)|
-                       unrouted_data$q19 %in% c(1,2)|unrouted_data$q20 %in% c(1,2)),1,0),na.rm = TRUE)
+                         (unrouted_data$q17 %in% c(1,2,3,4,5)|unrouted_data$q18 %in% c(1,2,3,4)|
+                            unrouted_data$q19 %in% c(1,2)|unrouted_data$q20 %in% c(1,2)),1,0),na.rm = TRUE)
 
 
 unrouted_data <- unrouted_data %>%  #apply rule
   mutate(q16 = case_when(is.na(q16) & 
-                         (q17 %in% c(1,2,3,4,5)|q18 %in% c(1,2,3,4)|
-                          q19 %in% c(1,2)|q20 %in% c(1,2)) ~ 1,
+                           (q17 %in% c(1,2,3,4,5)|q18 %in% c(1,2,3,4)|
+                              q19 %in% c(1,2)|q20 %in% c(1,2)) ~ 1,
                          TRUE ~ q16))
 
 lapply(unrouted_data[q17toq20],table,unrouted_data$q16,useNA = c("always")) #values after applying rule
@@ -182,7 +245,7 @@ unrouted_data <- unrouted_data %>%  #apply rule
 lapply(unrouted_data[q17toq20],table,unrouted_data$q16,useNA = c("always"))  #values after applying rule
 
 ##Rule 4.	Q21: Have you had radiotherapy treatment?####
-#Rule 4 a)  If Q21 is blank or 3 (No) then set Q22 to blank (77 records)
+#Rule 4 a)  If Q21 is blank or 3 (No) then set Q22 to blank
 Rule04a <- sum(if_else(unrouted_data$q21 %in% c(3,NA) & unrouted_data$q22 %in% c(1,2,3),1,0),na.rm = TRUE)
 
 tabyl(unrouted_data,q21,q22) #values before applying rule
@@ -194,15 +257,15 @@ tabyl(unrouted_data,q21,q22) #values after applying rule
 
 # Check that radiotherapy occurred in one of the locations that provides radiotherapy.
 #b)	If Q21 is 1 - had radiotherapy treatment at the hospital named on the survey letter and 
-# hospital is not one that provides radiotherapy, then set Q21 to 2 – had radiotherapy at a different hospital to the one named
+# hospital is not one that provides radiotherapy, then set Q21 to 2 Ã¢ÂÂ had radiotherapy at a different hospital to the one named
 #CH note have temporarily add location S116H
 
-radiotherapy_location <- if_else(unrouted_data$smr01_location2 %in% c("G516A", "G516B", "T101H", "N101H", "S116A","S116B", "S116H",
-                                                   "H202H", "L106H"), 1,0)
+radiotherapy_location <- if_else(unrouted_data$location_2 %in% c("G516A", "G516B", "T101H", "N101H", "S116A","S116B", "S116H",
+                                                                 "H202H", "L106H"), 1,0)
 table(unrouted_data$q21,radiotherapy_location,useNA = c("always"))
 
 #which locations that do not provide radiotherapy are respondents saying they had radiotherapy treatment
-table(unrouted_data$smr01_location2[radiotherapy_location == 0 & unrouted_data$q21 == 1])
+table(unrouted_data$location_2[radiotherapy_location == 0 & unrouted_data$q21 == 1])
 
 Rule04b <- sum(if_else(radiotherapy_location == 0 & unrouted_data$q21 == 1,1,0),na.rm = TRUE)
 
@@ -266,11 +329,11 @@ unrouted_data <- unrouted_data %>%
   mutate(across(starts_with("q47a"), function(x) case_when(grepl("1",x) == TRUE~ 1,
                                                            !is.na(x) ~ 2,
                                                            is.na(x) ~ NA), 
-                                                     .names = "{col}_1"),
+                .names = "{col}_1"),
          across(starts_with("q47a") & !matches("_"), function(x) case_when(grepl("2",x) == TRUE~ 1,
                                                                            !is.na(x) ~ 2,
                                                                            is.na(x) ~ NA), 
-                       .names = "{col}_2"),
+                .names = "{col}_2"),
          across(starts_with("q47a") & !matches("_"), function(x) case_when(grepl("3",x) == TRUE~ 1,
                                                                            !is.na(x) ~ 2,
                                                                            is.na(x) ~ NA),
@@ -302,7 +365,7 @@ unrouted_data <- unrouted_data %>%  #redefine original variables as either 1 if 
 
 lapply(unrouted_data%>%select(starts_with("q47")),table,useNA = c("always"))
 ## Rule 8. Q48: Were you able to bring a family member, friend or someone else to your appointments to support you when you wanted to?####
-#If respondent always had someone/didn’t want to bring someone, set sub routing question to blank.
+#If respondent always had someone/didnÃ¢ÂÂt want to bring someone, set sub routing question to blank.
 #If Q48 is blank or (1,6) then set Q49 to blank.
 
 tabyl(unrouted_data,q48,q49) #values after applying rule
@@ -315,21 +378,21 @@ tabyl(unrouted_data,q48,q49) #values after applying rule
 
 ##Rule 9.	Q50: How did the health and care team communicate with you at each stage? (tick all that apply)####
 q50 <- names(unrouted_data %>% select(starts_with("q50")))
-# Rule 9a.	Q50: If respondent ticks can’t remember in addition to any other communication method (including not applicable), then set can’t remember to blank
+# Rule 9a.	Q50: If respondent ticks canÃ¢ÂÂt remember in addition to any other communication method (including not applicable), then set canÃ¢ÂÂt remember to blank
 # If Q50_6 = 1 and any of Q50_(1 to 5) = 1 set Q50_6  to blank (xx records)
 
 lapply(unrouted_data[q50],table) #values before applying rule
 
 Rule09aa <- sum(if_else(str_detect(unrouted_data$q50a,"6") & 
-                         str_detect(unrouted_data$q50a,"1|2|3|4|5"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q50a,"1|2|3|4|5"),1,0),na.rm = TRUE)
 Rule09ab <- sum(if_else(str_detect(unrouted_data$q50b,"6") & 
-                         str_detect(unrouted_data$q50b,"1|2|3|4|5"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q50b,"1|2|3|4|5"),1,0),na.rm = TRUE)
 Rule09ac <- sum(if_else(str_detect(unrouted_data$q50c,"6") & 
-                         str_detect(unrouted_data$q50c,"1|2|3|4|5"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q50c,"1|2|3|4|5"),1,0),na.rm = TRUE)
 Rule09ad <- sum(if_else(str_detect(unrouted_data$q50d,"6") & 
-                         str_detect(unrouted_data$q50d,"1|2|3|4|5"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q50d,"1|2|3|4|5"),1,0),na.rm = TRUE)
 Rule09ae <- sum(if_else(str_detect(unrouted_data$q50e,"6") & 
-                         str_detect(unrouted_data$q50e,"1|2|3|4|5"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q50e,"1|2|3|4|5"),1,0),na.rm = TRUE)
 
 unrouted_data <- unrouted_data %>%  #apply rules 9a
   mutate(across(starts_with("q50"), function(x) if_else(str_detect(x,"6") & str_detect(x,"1|2|3|4|5"),str_replace(x,"6",""),x)))
@@ -340,15 +403,15 @@ lapply(unrouted_data[q50],table) #values after applying rule
 lapply(unrouted_data[q50],table) #values before applying rule
 
 Rule09ba <- sum(if_else(str_detect(unrouted_data$q50a,"5") & 
-                         str_detect(unrouted_data$q50a,"1|2|3|4"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q50a,"1|2|3|4"),1,0),na.rm = TRUE)
 Rule09bb <- sum(if_else(str_detect(unrouted_data$q50b,"5") & 
-                         str_detect(unrouted_data$q50b,"1|2|3|4"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q50b,"1|2|3|4"),1,0),na.rm = TRUE)
 Rule09bc <- sum(if_else(str_detect(unrouted_data$q50c,"5") & 
-                         str_detect(unrouted_data$q50c,"1|2|3|4"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q50c,"1|2|3|4"),1,0),na.rm = TRUE)
 Rule09bd <- sum(if_else(str_detect(unrouted_data$q50d,"5") & 
-                         str_detect(unrouted_data$q50d,"1|2|3|4"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q50d,"1|2|3|4"),1,0),na.rm = TRUE)
 Rule09be <- sum(if_else(str_detect(unrouted_data$q50e,"5") & 
-                         str_detect(unrouted_data$q50e,"1|2|3|4"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q50e,"1|2|3|4"),1,0),na.rm = TRUE)
 
 unrouted_data <- unrouted_data %>%  #apply rules 9b
   mutate(across(starts_with("q50"), function(x) if_else(str_detect(x,"5") & str_detect(x,"1|2|3|4"),
@@ -357,24 +420,24 @@ lapply(unrouted_data[q50],table) #values after applying rule
 #Split Q50 into separate variables. These should be 1 (Yes) when the value is found, NA if the mother variable is NA, and 2 (No) otherwise
 unrouted_data <- unrouted_data %>%
   mutate(across(starts_with("q50"), function(x) case_when(str_detect(x,"1") ~ 1,
-                                                           !is.na(x) ~ 2,
-                                                           is.na(x) ~ NA), 
+                                                          !is.na(x) ~ 2,
+                                                          is.na(x) ~ NA), 
                 .names = "{col}_1"),
          across(starts_with("q50") & !matches("_"), function(x) case_when(str_detect(x,"2")~ 1,
-                                                                           !is.na(x) ~ 2,
-                                                                           is.na(x) ~ NA), 
+                                                                          !is.na(x) ~ 2,
+                                                                          is.na(x) ~ NA), 
                 .names = "{col}_2"),
          across(starts_with("q50") & !matches("_"), function(x) case_when(str_detect(x,"3")~ 1,
-                                                                           !is.na(x) ~ 2,
-                                                                           is.na(x) ~ NA),
+                                                                          !is.na(x) ~ 2,
+                                                                          is.na(x) ~ NA),
                 .names = "{col}_3"),
          across(starts_with("q50") & !matches("_"), function(x) case_when(str_detect(x,"4")~ 1,
-                                                                           !is.na(x) ~ 2,
-                                                                           is.na(x) ~ NA),
+                                                                          !is.na(x) ~ 2,
+                                                                          is.na(x) ~ NA),
                 .names = "{col}_4"),
          across(starts_with("q50") & !matches("_"), function(x) case_when(str_detect(x,"5")~ 1,
-                                                                           !is.na(x) ~ 2,
-                                                                           is.na(x) ~ NA), 
+                                                                          !is.na(x) ~ 2,
+                                                                          is.na(x) ~ NA), 
                 .names = "{col}_5"),
          across(starts_with("q50") & !matches("_"), function(x) case_when(str_detect(x,"6")~ 1,
                                                                           !is.na(x) ~ 2,
@@ -390,21 +453,21 @@ lapply(unrouted_data %>% select(starts_with("q50")),table,useNA = c("always")) #
 
 ##Rule 10.	Q51: What would have been your preferred method of communication for each of these stages? (tick all that apply)####
 
-# Rule 10a.	Q51: If respondent ticks can’t remember in addition to any other communication method (including not applicable), then set can’t remember to blank
+# Rule 10a.	Q51: If respondent ticks canÃ¢ÂÂt remember in addition to any other communication method (including not applicable), then set canÃ¢ÂÂt remember to blank
 # If Q51_6 = 1 and any of Q51_(1 to 5) = 1 set Q51_6  to blank (xx records)
 
 lapply(unrouted_data %>% select(starts_with("q51")),table,useNA = c("always"))  #values before applying rule
 
 Rule10aa <- sum(if_else(str_detect(unrouted_data$q51a,"6") & 
-                         str_detect(unrouted_data$q51a,"1|2|3|4|5"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q51a,"1|2|3|4|5"),1,0),na.rm = TRUE)
 Rule10ab <- sum(if_else(str_detect(unrouted_data$q51b,"6") & 
-                         str_detect(unrouted_data$q51b,"1|2|3|4|5"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q51b,"1|2|3|4|5"),1,0),na.rm = TRUE)
 Rule10ac <- sum(if_else(str_detect(unrouted_data$q51c,"6") & 
-                         str_detect(unrouted_data$q51c,"1|2|3|4|5"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q51c,"1|2|3|4|5"),1,0),na.rm = TRUE)
 Rule10ad <- sum(if_else(str_detect(unrouted_data$q51d,"6") & 
-                         str_detect(unrouted_data$q51d,"1|2|3|4|5"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q51d,"1|2|3|4|5"),1,0),na.rm = TRUE)
 Rule10ae <- sum(if_else(str_detect(unrouted_data$q51e,"6") & 
-                         str_detect(unrouted_data$q51e,"1|2|3|4|5"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q51e,"1|2|3|4|5"),1,0),na.rm = TRUE)
 
 unrouted_data <- unrouted_data %>%  #apply rules 10a
   mutate(across(starts_with("q51"), function(x) if_else(str_detect(x,"6") & str_detect(x,"1|2|3|4|5"),str_replace(x,"6",""),x)))
@@ -413,15 +476,15 @@ lapply(unrouted_data%>%select(starts_with("q51")),table) #values after applying 
 # Rule 10b.	q51: If respondent ticks not applicable in addition to substantive communication methods, then set not applicable to blank
 
 Rule10ba <- sum(if_else(str_detect(unrouted_data$q51a,"5") & 
-                         str_detect(unrouted_data$q51a,"1|2|3|4"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q51a,"1|2|3|4"),1,0),na.rm = TRUE)
 Rule10bb <- sum(if_else(str_detect(unrouted_data$q51b,"5") & 
-                         str_detect(unrouted_data$q51b,"1|2|3|4"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q51b,"1|2|3|4"),1,0),na.rm = TRUE)
 Rule10bc <- sum(if_else(str_detect(unrouted_data$q51c,"5") & 
-                         str_detect(unrouted_data$q51c,"1|2|3|4"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q51c,"1|2|3|4"),1,0),na.rm = TRUE)
 Rule10bd <- sum(if_else(str_detect(unrouted_data$q51d,"5") & 
-                         str_detect(unrouted_data$q51d,"1|2|3|4"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q51d,"1|2|3|4"),1,0),na.rm = TRUE)
 Rule10be <- sum(if_else(str_detect(unrouted_data$q51e,"5") & 
-                         str_detect(unrouted_data$q51e,"1|2|3|4"),1,0),na.rm = TRUE)
+                          str_detect(unrouted_data$q51e,"1|2|3|4"),1,0),na.rm = TRUE)
 
 unrouted_data <- unrouted_data %>%  #apply rules 10b
   mutate(across(starts_with("q51"), function(x) if_else(str_detect(x,"5") & str_detect(x,"1|2|3|4"),
@@ -494,7 +557,7 @@ unrouted_data <- unrouted_data %>%  #apply rule
 table(unrouted_data$q61atoj,unrouted_data$q61k,useNA = c("always"))
 table(unrouted_data$q61k,useNA = c("always"))
 unrouted_data <- unrouted_data %>%  select(-q61atoj)#drop extra variable
-  
+
 #Apply tick all that apply rule. Blanks should be set to "No" (2) unless none of the response options were ticked, in which case all response options should be set.
 unrouted_data <- unrouted_data %>%  #apply rule
   mutate(q61 = if_else(if_any(all_of(q61), ~ !is.na(.x)),1,0),
@@ -508,7 +571,8 @@ ls(unrouted_data)
 #Final tidy. Add any other corrections here
 table(unrouted_data$q55,useNA = c("always"))
 unrouted_data <- unrouted_data %>%  #apply rule
-  mutate(q58 = if_else(q58 == 98,NA,q58))
+  mutate(q55 = if_else(q55 == 98,NA,q55))
+table(unrouted_data$q55,useNA = c("always"))
 
 
 #This outputs the frequencies of all the question responses to a text file
@@ -526,7 +590,7 @@ rule_values <- c(as.numeric("Rule01"),"Rule02a",  "Rule02b",  "Rule03a",  "Rule0
 rules_summary <- data.frame("Rules" = rule_names,"Records affected" = rule_values)
 
 #save out rule summary
-write.xlsx(rules_summary, file = "output/analysis_output/rules_summary.xlsx")
+write.xlsx(rules_summary, paste0(analysis_output_path,"rules_summary.xlsx"))
 
 
 #Step 4: Save out file.####
@@ -536,4 +600,3 @@ identical(hist.file,unrouted_data)
 
 #Save out reformatted data
 saveRDS(unrouted_data,paste0(analysis_output_path,"validated_results.rds"))
-
