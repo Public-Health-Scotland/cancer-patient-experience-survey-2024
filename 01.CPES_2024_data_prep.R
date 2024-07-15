@@ -74,9 +74,9 @@ table(contractor_data$iqvia_exclude)
 table(contractor_data$additional_exclusion_flag)
 
 ## Deaths: Were there any cases where: ####
-# * 1) the patient died, but completed the survey prior to death? Yes: 10 cases - these cases will remain in the sample.
+# * 1) the patient died, but completed the survey prior to death? Yes: these cases will remain in the sample.
 # * 2) the patient died, but this was not picked-up by NHSCR / CHILI? 
-#      (i.e. Notified by family and after last mailout day) Yes: 4 cases - these cases will be removed from the sample.
+#      (i.e. Notified by family and after last mailout day) Yes: these cases will be removed from the sample.
 table(contractor_data$iqvia_exclude,contractor_data$Response.Code,useNA = c("always"))
 ## Code into respondents / non-respondents and remove patients who were excluded from the sample before final analysis. ####
 # * Recode Response.Code into patients who responded to the survey and those who did not. 
@@ -592,6 +592,13 @@ rules_summary <- data.frame("Rules" = rule_names,"Records affected" = rule_value
 #save out rule summary
 write.xlsx(rules_summary, paste0(analysis_output_path,"rules_summary.xlsx"))
 
+#Calculate the average score of q55 for those participants who provided a score in response to this question
+table(unrouted_data$q55)
+unrouted_data$q55_ave <- mean(unrouted_data$q55, na.rm=TRUE)
+#Round q55_ave to 2 decimal places
+unrouted_data$q55_ave = round(unrouted_data$q55_ave,2)
+#Relocate q55_ave after q55
+unrouted_data <- unrouted_data %>% relocate(q55_ave, .after = q55)
 
 #Step 4: Save out file.####
 #check if the same as before
