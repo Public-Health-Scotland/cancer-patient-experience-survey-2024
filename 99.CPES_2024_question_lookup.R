@@ -43,12 +43,13 @@ table(question_mapping$question_type,useNA = c("always"))
 
 #create question lookup
 question_lookup <- question_mapping %>%
-  select(question,question_type,question_text,response_option,response_text,topic,cancercentreallocation,weighted,pnn,`2018_question`,`2015_question`) %>%
+  select(question,question_type,question_text,response_option,response_text,topic,cancercentreallocation,weighted,pnn,
+         `2018_question`,`2018_option`,`2015_question`,`2015_option`) %>%
   rename(response_value = pnn) %>%
   mutate(response_text_analysis = coalesce(response_value,response_text)) # for 04.CPES_2024_create_aggregate_results.R
 
 #Read in addendum mapping document which caters for the design of questions q47, q50 and q51 (Future proofing for codes 01, 02, 03 and 04)
-question_mapping_addendum <- read.xlsx(paste0(lookup_path,"CPES_2024_question_addendum.xlsx"),sheet = "Sheet1")
+question_mapping_addendum <- read.xlsx(paste0(lookup_path,"CPES_2024_question_mapping.xlsx"),sheet = "Additional_mapping (info-TATA)")
 question_lookup <- rbind(question_lookup,question_mapping_addendum)
 question_lookup <- question_lookup %>%
   filter(question != 'q47a01' & question !='q47a02' & question !='q47a03' & question != 'q47a04' 
