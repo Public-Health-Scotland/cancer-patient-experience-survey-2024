@@ -54,7 +54,7 @@ responses_longer <- responses_longer %>%
 
 question_lookup <- question_lookup %>% 
   filter(!response_text_analysis %in% c(NA,"Exclude")) %>% 
-  select(question,question_text,response_option,response_text_analysis) %>% 
+  select(question,question_text,response_option,response_text_analysis,topic) %>% 
   distinct()
 
 #define the aggregate function.####
@@ -102,6 +102,16 @@ cc <- expand_table(df)%>%  mutate(level = "Cancer centre")
 df <- aggregate_responses(tumour_group_text,nat_wt)
 tmt <- expand_table(df)%>%  mutate(level = "Tumour group")
 
+saveRDS(nat, paste0(analysis_output_path,"nat.rds"))
+saveRDS(nett, paste0(analysis_output_path,"nett.rds"))
+saveRDS(netr, paste0(analysis_output_path,"netr.rds"))
+saveRDS(hbt, paste0(analysis_output_path,"hbt.rds"))
+saveRDS(hbr, paste0(analysis_output_path,"hbr.rds"))
+saveRDS(cc, paste0(analysis_output_path,"cc.rds"))
+saveRDS(tmt, paste0(analysis_output_path,"tmt.rds"))
+
+################
+
 output <- distinct(bind_rows(nat,nett,netr,hbt,hbr,cc)) %>% 
   left_join(hb_names, by = c("report_area" = "hb_code")) %>% 
   mutate(report_area_name = case_when(level == "National" ~ "Scotland",
@@ -119,23 +129,38 @@ output <- distinct(bind_rows(nat,nett,netr,hbt,hbr,cc)) %>%
                                       TRUE ~ report_area)) %>% 
   rename(wgt_percent = coef) %>% 
   mutate(percent = n_response / n_includedresponses)
+saveRDS(output, paste0(analysis_output_path,"provisional_output.rds"))
+
+#######
+
+nat <- readRDS(paste0(analysis_output_path,"nat.rds"))
+nett <- readRDS(paste0(analysis_output_path,"nett.rds"))
+netr <- readRDS(paste0(analysis_output_path,"netr.rds"))
+hbt <- readRDS(paste0(analysis_output_path,"hbt.rds"))
+hbr <- readRDS(paste0(analysis_output_path,"hbr.rds"))
+cc <- readRDS(paste0(analysis_output_path,"cc.rds"))
+tmt <- readRDS(paste0(analysis_output_path,"tmt.rds"))
+output <- readRDS(paste0(analysis_output_path,"provisional_output.rds"))
 question_lookup <- readRDS(paste0(lookup_path,"question_lookup.rds"))  #read in lookup again to get response option
 
 question_lookup <- question_lookup %>% 
   filter(!response_text_analysis %in% c(NA,"Exclude")) %>% 
-  group_by(question,question_type,response_text_analysis,`2018_question`,`2015_question`) %>% 
+  group_by(question,question_type,response_text_analysis,`2018_question`,`2015_question`,response_value) %>% 
   summarise(response_option = first(response_option))
+#`2018_question`,`2018_option`,`2015_question`,`2015_option`
 
 output <- output %>% 
   select(-hb_name) %>% 
   left_join(question_lookup, by = c("question","response_text_analysis","response_option")) %>% 
-  arrange(level,report_area,question,response_option)
+  arrange(level,report_area,question,response_option) %>%
+  filter(!question_type %in% c(NA)) # to remove duplicated negative values 
 
 table(output$report_area_name,useNA = c("always"))
 
 tumour_output <- distinct(bind_rows(nat,tmt)) %>% 
   left_join(question_lookup, by = c("question","response_text_analysis","response_option")) %>% 
-  arrange(level,report_area,question,response_option)
+  arrange(level,report_area,question,response_option) %>%
+  filter(!question_type %in% c(NA)) # to remove duplicated negative values
 
 write.xlsx(output,paste0(analysis_output_path,"output.xlsx"))
 saveRDS(output, paste0(analysis_output_path,"output.rds"))
