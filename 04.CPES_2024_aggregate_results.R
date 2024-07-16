@@ -114,7 +114,7 @@ saveRDS(hbr, paste0(analysis_output_path,"hbr.rds"))
 saveRDS(cc, paste0(analysis_output_path,"cc.rds"))
 saveRDS(tmt, paste0(analysis_output_path,"tmt.rds"))
 
-#run average for question 55
+#run average for question 55 
 #define the aggregate function.####
 aggregate_responses_average <- function(report_areas,wt) {
   responses_longer <- responses_longer %>%

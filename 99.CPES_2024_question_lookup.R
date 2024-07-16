@@ -7,7 +7,7 @@
 # Description of content:  Create metadata for each question in CPES 2024 survey
 # 
 # Approximate run time: <1 min
-# 
+#  
 # Approximate memory usage: 1.26 GiB
 
 #Inputs: lookup_path,"CPES_2024_question_mapping.xlsx"

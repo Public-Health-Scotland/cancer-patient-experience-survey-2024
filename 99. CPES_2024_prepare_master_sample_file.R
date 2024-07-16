@@ -122,7 +122,7 @@ master_sample_file <- master_sample_file %>%
 #Save out updated version of Master Sample File for completeness
 #check if the same as before
 hist.file <- readRDS(paste0(data_path,"sample/2024.06.13_finalised_master_CPES_list.rds")) 
-all_equal(hist.file,master_sample_file)
+all_equal(hist.file,master_sample_file) 
 #Save out reformatted data
 saveRDS(master_sample_file, paste0(data_path,"sample/2024.07.15_finalised_master_CPES_list.rds"))
 ls(master_sample_file)

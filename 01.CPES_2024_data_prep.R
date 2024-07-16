@@ -587,7 +587,7 @@ write.xlsx(rules_summary, paste0(analysis_output_path,"rules_summary.xlsx"))
 #Step 4: Save out file.####
 #check if the same as before
 hist.file <- readRDS(paste0(analysis_output_path,"validated_results.rds")) 
-all_equal(hist.file,unrouted_data) 
+all_equal(hist.file,unrouted_data)  
 
 #Save out reformatted data
 saveRDS(unrouted_data,paste0(analysis_output_path,"validated_results.rds"))
