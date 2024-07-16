@@ -35,16 +35,6 @@ responses_longer <- readRDS(paste0(analysis_output_path,"responses_longer.rds"))
 
 responses_longer <- responses_longer %>%   mutate(no_wt = 1) #add a no_wt variable for cancer centres
 
-table(responses_longer$response_option[responses_longer$question == "q55"],useNA = c("always"))
-mean(as.numeric(responses_longer$response_option[responses_longer$question == "q55"]),na.rm = TRUE)
-sum(as.numeric(responses_longer$response_option[responses_longer$question == "q55"])*
-      responses_longer$nat_wt[responses_longer$question == "q55"],na.rm = TRUE)/
-  sum(responses_longer$nat_wt[responses_longer$question == "q55"],na.rm = TRUE)
-
-check_q55 <- responses_longer %>% 
-  filter(question == "q55")
-write.xlsx(check_q55,paste0(analysis_output_path,"check_q55.xlsx"))
-
 #read in lookups
 hb_names <- read.csv(paste0(lookup_path,"SMRA.ANALYSIS.HEALTH_BOARD.csv"))%>% 
   select(GRO_HB9_2019,DESCRIPTION) %>% 
@@ -104,16 +94,16 @@ hbr <- expand_table(df)%>%   mutate(level = "NHS board of residence")
 df <- aggregate_responses(cancer_centre,no_wt)
 cc <- expand_table(df)%>%  mutate(level = "Cancer centre")
 
-df <- aggregate_responses(tumour_group_text,nat_wt)
+df <- aggregate_responses(cancer_group_smr06,nat_wt)
 cg <- expand_table(df)%>%  mutate(level = "Cancer group")
 
-saveRDS(nat, paste0(analysis_output_path,"nat.rds"))
-saveRDS(nett, paste0(analysis_output_path,"nett.rds"))
-saveRDS(netr, paste0(analysis_output_path,"netr.rds"))
-saveRDS(hbt, paste0(analysis_output_path,"hbt.rds"))
-saveRDS(hbr, paste0(analysis_output_path,"hbr.rds"))
-saveRDS(cc, paste0(analysis_output_path,"cc.rds"))
-saveRDS(tmt, paste0(analysis_output_path,"tmt.rds"))
+saveRDS(nat,paste0(analysis_output_path,"nat.rds"))
+saveRDS(nett,paste0(analysis_output_path,"nett.rds"))
+saveRDS(netr,paste0(analysis_output_path,"netr.rds"))
+saveRDS(hbt,paste0(analysis_output_path,"hbt.rds"))
+saveRDS(hbr,paste0(analysis_output_path,"hbr.rds"))
+saveRDS(cc,paste0(analysis_output_path,"cc.rds"))
+saveRDS(tmt,paste0(analysis_output_path,"tmt.rds"))
 
 #run average for question 55 
 #define the aggregate function.####
@@ -132,11 +122,39 @@ aggregate_responses_average <- function(report_areas,wt) {
     group_by(report_area,question) %>%
     mutate(n_includedresponses = sum(n_response),
            n_wgt_includedresponses = sum(n_wgt_response))}
+
 df <- aggregate_responses_average(scotland,nat_wt)
-nat_q55 <- df %>%  mutate(level = "Scotland")
+nat_q55 <- df %>% mutate(level = "Scotland")
+
+df <- aggregate_responses_average(network_of_tx,nett_wt)
+nett_q55 <- df %>% mutate(level = "Network of treatment")
+
+df <- aggregate_responses_average(network_of_residence_tx,netr_wt)
+netr_q55 <- df %>% mutate(level = "Network of residence")
+
+df <- aggregate_responses_average(board_of_tx,hbt_wt)
+hbt_q55 <- df %>% mutate(level =  "NHS board of treatment")
+
+df <- aggregate_responses_average(board_of_residence_tx,hbr_wt)
+hbr_q55 <- df %>% mutate(level = "NHS board of residence")
+
+df <- aggregate_responses_average(cancer_centre,no_wt)
+cc_q55 <- df %>% mutate(level = "Cancer centre")
+
+df <- aggregate_responses_average(cancer_group_smr06,nat_wt)
+cg_q55 <- df %>% mutate(level = "Cancer group")
+
+saveRDS(nat_q55,paste0(analysis_output_path,"nat_q55.rds"))
+saveRDS(nett_q55,paste0(analysis_output_path,"nett_q55.rds"))
+saveRDS(netr_q55,paste0(analysis_output_path,"netr_q55.rds"))
+saveRDS(hbt_q55,paste0(analysis_output_path,"hbt_q55.rds"))
+saveRDS(hbr_q55,paste0(analysis_output_path,"hbr_q55.rds"))
+saveRDS(cc_q55,paste0(analysis_output_path,"cc_q55.rds"))
+saveRDS(tmt_q55,paste0(analysis_output_path,"tmt_q55.rds"))
+
 ################
 
-output <- distinct(bind_rows(nat,nett,netr,hbt,hbr,cc)) %>% 
+output <- distinct(bind_rows(nat,nat_q55,nett,nett_q55,netr,netr_q55,hbt,hbt_q55,hbr,hbr_q55,cc,cc_q55)) %>% 
   left_join(hb_names, by = c("report_area" = "hb_code")) %>% 
   mutate(report_area_name = case_when(level == "National" ~ "Scotland",
                                       level %in% c("NHS board of treatment","NHS board of residence") ~ hb_name,
@@ -156,13 +174,6 @@ saveRDS(output, paste0(analysis_output_path,"provisional_output.rds"))
 
 #######
 
-nat <- readRDS(paste0(analysis_output_path,"nat.rds"))
-nett <- readRDS(paste0(analysis_output_path,"nett.rds"))
-netr <- readRDS(paste0(analysis_output_path,"netr.rds"))
-hbt <- readRDS(paste0(analysis_output_path,"hbt.rds"))
-hbr <- readRDS(paste0(analysis_output_path,"hbr.rds"))
-cc <- readRDS(paste0(analysis_output_path,"cc.rds"))
-tmt <- readRDS(paste0(analysis_output_path,"tmt.rds"))
 output <- readRDS(paste0(analysis_output_path,"provisional_output.rds"))
 question_lookup <- readRDS(paste0(lookup_path,"question_lookup.rds"))  #read in lookup again to get response option
 
