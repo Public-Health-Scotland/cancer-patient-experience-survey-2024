@@ -1,7 +1,11 @@
 ###set vectors of report areas
 report_areas <- c("scotland","network_of_tx","network_of_residence_tx","board_of_tx" ,"board_of_residence_tx")
-report_areas_output <- c("scotland","network_of_tx","network_of_residence_tx","board_of_tx" ,"board_of_residence_tx","cancer_centre")
 report_area_wt <- c("nat_wt","nett_wt","netr_wt","hbt_wt","hbr_wt")
+sg_variables <- c("sex","smr01_sex_label","age_group_chi","simd2020v2_sc_quintile_smr01","ur6_2020_smr01","ur6_2020_name_smr01",
+                  "hscp2019","hscp2019name","board_of_tx","board_of_treatment","board_of_residence_tx","board_of_residence",
+                  "network_of_tx","network_of_residence_tx","smr01_locname","cancer_group_smr06","smr06_stage",
+                  "smr06_method_1st_detection","smr06_method_1st_detection_description","nat_wt","nett_wt","netr_wt","hbt_wt","hbr_wt")
+
 
 ###set vectors of questions numbers
 questions <- readRDS(paste0(lookup_path,"questions.rds"))
