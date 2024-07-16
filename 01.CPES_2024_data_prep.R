@@ -25,14 +25,6 @@ source("00.CPES_2024_functions.R")
 #analysis_output/"anonymised_unvalidated_response_data_with_patient_data_for_SG.xlsx"
 #rules_summary, file = "output/analysis_output/rules_summary.xlsx"
 #analysis_output_path,"validated_results.rds"
-#analysis_output_path,"validated_results.rds"
-
-#to do
-#RENAME VARIABLES (PatientRecordNumber = UniquePatientSurveyID)? DONE 
-##add patientid_SG? DONE
-#Previously, missing was coded as 99 and no response as 88. In HACE, both would be coded to 0.
-#Here, I'm trying to code both as NA. Is this appropriate?
-#In HACE, tick all that apply questions are coded as 1 (Yes), 0 (No), and NA. Here, it's 1 ,2 and NA which I've retained for avoidance of confusion. Which is better?
 
 ###################################################################################
 
@@ -49,14 +41,14 @@ rm(contractor_data2)
 ##Read in variables required from master sample file. This should cover both those that SG require, and those needed for PHS further analyses. ####
 #Retain smr01_sex,age_group_chi,simd2020v2_sc_quintile_smr01,ur6_2020_smr01,ur6_2020_name_smr01,hscp2019,hscp2019name,smr01_hbtreat_keydate,smr01_hbres_keydate,
 #smr01_location,smr01_location2,smr01_locname,full_site_name,ECC_flag,smr06_stage,smr06_method_1st_detection
-#CH - do we need full site name? We do not need all of these tumour groupings. Need to remove once we have more clarity.
-master_sample_file <- readRDS(paste0(data_path,"sample/2024.06.13_finalised_master_CPES_list.rds")) 
+
+master_sample_file <- readRDS(paste0(data_path,"sample/2024.07.15_finalised_master_CPES_list.rds")) 
 ls(master_sample_file)
 master_sample_file <- master_sample_file %>%
   select(uniquepatientsurveyid,smr01_sex,smr01_sex_label,age_chi,age_group_chi,simd2020v2_sc_quintile_smr01,ur6_2020_smr01,ur6_2020_name_smr01,
          hscp2019,hscp2019name,smr01_hbtreat_keydate,board_of_treatment,smr01_hbres_keydate,board_of_residence,network_of_residence_smr01,network_of_treatment_smr01,
          smr01_location,smr01_location2,smr01_locname,full_site_name,smr06_stage,smr06_method_1st_detection,smr06_method_1st_detection_description,
-         tumour_group_smr06,tumour_group_2_smr06,tumour_group_text_smr06,cancer_type_smr06,iqvia_exclude,additional_exclusion_flag)
+         tumour_group_smr06,tumour_group_2_smr06,tumour_group_text_smr06,cancer_group_smr06,iqvia_exclude,additional_exclusion_flag)
 
 table(master_sample_file$smr06_method_1st_detection)
 table(master_sample_file$iqvia_exclude)
@@ -120,8 +112,8 @@ contractor_data <- contractor_data %>%
 
 #check if the same as before
 hist.file <- readRDS(paste0(data_path,"Results from Contractor/Final_unrouted_data.rds")) 
-identical(hist.file,contractor_data) 
-
+all_equal(hist.file,contractor_data) 
+all_equal(hist.file%>%select(-cancer_type_smr06),contractor_data%>%select(-cancer_group_smr06)) 
 ##Save out reformatted data ####
 saveRDS(contractor_data, paste0(data_path,"Results from Contractor/Final_unrouted_data.rds"))
 
@@ -592,18 +584,10 @@ rules_summary <- data.frame("Rules" = rule_names,"Records affected" = rule_value
 #save out rule summary
 write.xlsx(rules_summary, paste0(analysis_output_path,"rules_summary.xlsx"))
 
-#Calculate the average score of q55 for those participants who provided a score in response to this question
-table(unrouted_data$q55)
-unrouted_data$q55_ave <- mean(unrouted_data$q55, na.rm=TRUE)
-#Round q55_ave to 2 decimal places
-unrouted_data$q55_ave = round(unrouted_data$q55_ave,2)
-#Relocate q55_ave after q55
-unrouted_data <- unrouted_data %>% relocate(q55_ave, .after = q55)
-
 #Step 4: Save out file.####
 #check if the same as before
 hist.file <- readRDS(paste0(analysis_output_path,"validated_results.rds")) 
-identical(hist.file,unrouted_data) 
+all_equal(hist.file,unrouted_data) 
 
 #Save out reformatted data
 saveRDS(unrouted_data,paste0(analysis_output_path,"validated_results.rds"))
