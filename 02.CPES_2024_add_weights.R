@@ -117,26 +117,15 @@ sg_responses_file <- phs_responses_file %>%
   select (patientid_sg,responsecode,responsesubcode,responsedatetime,
           #questionnaire responses
           (starts_with('q')), -qh_psid,
-          sex,smr01_sex_label,
-          age_group_chi,
-          simd2020v2_sc_quintile_smr01,
-          ur6_2020_smr01,ur6_2020_name_smr01,
-          hscp2019,hscp2019name,
-          board_of_tx,board_of_treatment,
-          board_of_residence_tx,board_of_residence,
-          network_of_tx,network_of_residence_tx,
-          smr01_locname, #Cancer centre is contained within where appropriate
-          #Cancer group in here,
-          smr06_stage,
-          smr06_method_1st_detection,smr06_method_1st_detection_description,
-          nat_wt,
-          nett_wt,
-          netr_wt,
-          hbt_wt,
-          hbr_wt)
+          all_of(sg_variables)) %>%
+  rename(network_of_treatment_code_smr01 = network_of_tx) %>%
+  rename(network_of_residence_code_smr01 = network_of_residence_tx) %>%
+  rename(smr01_hbtreat_code_keydate = board_of_tx) %>%
+  rename(smr01_hbres_code_keydate = board_of_residence_tx)
 
 #check if the same as before
 hist.file <- readRDS(paste0(analysis_output_path,"sg_responses_with_weights.rds")) 
 identical(hist.file,sg_responses_file) 
+all_equal(hist.file,sg_responses_file) 
 
 saveRDS(sg_responses_file,paste0(analysis_output_path,"sg_responses_with_weights.rds"))

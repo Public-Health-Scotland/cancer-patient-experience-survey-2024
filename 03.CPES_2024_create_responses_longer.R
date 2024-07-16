@@ -20,7 +20,7 @@
 source("00.CPES_2024_set_up_packages.R")
 source("00.CPES_2024_set_up_file_paths.R")
 source("00.CPES_2024_functions.R")
-#cancer_group_smr06
+
 #read in results data####
 responses_with_weights <- readRDS(paste0(analysis_output_path,"responses_with_weights.rds")) 
 
@@ -29,11 +29,11 @@ ls(responses_with_weights)
 #pivot longer####
 responses_longer <- responses_with_weights %>%
   pivot_longer(all_of(questions),names_to = "question", values_to = "response_option")%>%
-  select("patientid",location_2,all_of(report_areas),tumour_group_text,ends_with('_wt'),question,response_option) %>% 
+  select("patientid",location_2,all_of(report_areas),cancer_group_smr06,ends_with('_wt'),question,response_option) %>% 
   mutate(response_option = as.character(response_option))
 
 responses_longer <- responses_longer %>% 
-  select("patientid",all_of(report_areas),location_2,tumour_group_text,all_of(report_area_wt),question,response_option)
+  select("patientid",all_of(report_areas),location_2,cancer_group_smr06,all_of(report_area_wt),question,response_option)
 
 # Step 5: Allocate responses to main cancer centres. ####
 # * Allocation Rules for Cancer Centre Reports.
