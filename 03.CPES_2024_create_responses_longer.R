@@ -20,7 +20,7 @@
 source("00.CPES_2024_set_up_packages.R")
 source("00.CPES_2024_set_up_file_paths.R")
 source("00.CPES_2024_functions.R")
-
+#cancer_group_smr06
 #read in results data####
 responses_with_weights <- readRDS(paste0(analysis_output_path,"responses_with_weights.rds")) 
 

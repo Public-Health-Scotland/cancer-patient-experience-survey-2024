@@ -9,7 +9,7 @@
 # Approximate run time: <1 min
 # 
 # Approximate memory usage: < MiB
-
+#cancer_group_smr06
 ###################################################################################
 
 source("00.CPES_2024_set_up_packages.R")
@@ -115,51 +115,8 @@ phs_responses_file <- readRDS(paste0(analysis_output_path,"responses_with_weight
 ls(phs_responses_file)
 sg_responses_file <- phs_responses_file %>%
   select (patientid_sg,responsecode,responsesubcode,responsedatetime,
-          #1. Getting diagnosed 
-          q01,q02,q03,q04,q05,q06,  
-          #2.Finding out you had cancer  
-          q07a,q07b,q07c,q07d,q07e,q07f,q08,q09,q10, 
-          #3. Deciding the best treatment for you
-          q11,q12,q13,q14,q15, 
-          #4. Operations, Radiotherapy and Chemotherapy  
-          q16,q17,q18,q19,q20,q21,q22,q23,q24, 
-          q25a,q25b,q25c,q25d,q25e,q25f,q26,q27,q28,q29,q30,q31,  #5.Hospital Care                                   
-          q32a,q32b,q32c,q32d,q32e,q32f,q32g,q33,q34a,q34b,q34c,q34d,q34e,q34f,q34g, #6. Wider Support                                 
-          q35,q36,q37,q38,q39,q40,q41, #7. Information and Other Support
-          #8. Your overall experience
-          q42,q43,q44,q45,q46,q46atoi,q46a,q46b,q46c,q46d,q46e,q46f,q46g,q46h,q46i,q46j,                                                                        
-          q47a01, q47a01_1, q47a01_2, q47a01_3,
-          q47a02, q47a02_1, q47a02_2, q47a02_3,
-          q47a03, q47a03_1, q47a03_2, q47a03_3,                            
-          q47a04, q47a04_1, q47a04_2, q47a04_3,                              
-          q47a05, q47a05_1, q47a05_2, q47a05_3,                   
-          q47a06, q47a06_1, q47a06_2, q47a06_3,                            
-          q47a07, q47a07_1, q47a07_2, q47a07_3,                              
-          q47b01, q47b01_1, q47b01_2, q47b01_3, q47b01_4, q47b01_5,                   
-          q47b02, q47b02_1, q47b02_2, q47b02_3, q47b02_4, q47b02_5,   
-          q47b03, q47b03_1, q47b03_2, q47b03_3, q47b03_4, q47b03_5,                               
-          q47b04, q47b04_1, q47b04_2, q47b04_3, q47b04_4, q47b04_5,
-          q47b05, q47b05_1, q47b05_2, q47b05_3, q47b05_4, q47b05_5,
-          q47b06, q47b06_1, q47b06_2, q47b06_3, q47b06_4, q47b06_5,
-          q47b07, q47b07_1, q47b07_2, q47b07_3, q47b07_4, q47b07_5,                               
-          q48,
-          q49,                                   
-          q50a, q50a_1, q50a_2, q50a_3, q50a_4, q50a_5, q50a_6,
-          q50b, q50b_1, q50b_2, q50b_3, q50b_4, q50b_5, q50b_6,   
-          q50c, q50c_1, q50c_2, q50c_3, q50c_4, q50c_5, q50c_6,                                
-          q50d, q50d_1, q50d_2, q50d_3, q50d_4, q50d_5, q50d_6,                                 
-          q50e, q50e_1, q50e_2, q50e_3, q50e_4, q50e_5, q50e_6, 
-          q51a, q51a_1, q51a_2, q51a_3, q51a_4, q51a_5, q51a_6,                                
-          q51b, q51b_1, q51b_2, q51b_3, q51b_4, q51b_5, q51b_6,  
-          q51c, q51c_1, q51c_2, q51c_3, q51c_4, q51c_5, q51c_6, 
-          q51d, q51d_1, q51d_2, q51d_3, q51d_4, q51d_5, q51d_6,                                
-          q51e, q51e_1, q51e_2, q51e_3, q51e_4, q51e_5, q51e_6, 
-          q52,
-          q53, 
-          q54,  
-          q55,q55_ave, 
-          #9. Other comments
-          q56a,q56b,q56c,q57,q58,q59,q60,q61,q61a,q61b,q61c,q61d,q61e,q61f,q61g,q61h,q61i,q61j,q61k,q62,                    
+          #questionnaire responses
+          (starts_with('q')), -qh_psid,
           sex,smr01_sex_label,
           age_group_chi,
           simd2020v2_sc_quintile_smr01,
@@ -168,8 +125,7 @@ sg_responses_file <- phs_responses_file %>%
           board_of_tx,board_of_treatment,
           board_of_residence_tx,board_of_residence,
           network_of_tx,network_of_residence_tx,
-          smr01_location,location_2,smr01_locname,
-          #Cancer centre in here,
+          smr01_locname, #Cancer centre is contained within where appropriate
           #Cancer group in here,
           smr06_stage,
           smr06_method_1st_detection,smr06_method_1st_detection_description,
@@ -178,6 +134,7 @@ sg_responses_file <- phs_responses_file %>%
           netr_wt,
           hbt_wt,
           hbr_wt)
+
 #check if the same as before
 hist.file <- readRDS(paste0(analysis_output_path,"sg_responses_with_weights.rds")) 
 identical(hist.file,sg_responses_file) 
