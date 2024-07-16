@@ -50,9 +50,9 @@ rm(contractor_data2)
 #Retain smr01_sex,age_group_chi,simd2020v2_sc_quintile_smr01,ur6_2020_smr01,ur6_2020_name_smr01,hscp2019,hscp2019name,smr01_hbtreat_keydate,smr01_hbres_keydate,
 #smr01_location,smr01_location2,smr01_locname,full_site_name,ECC_flag,smr06_stage,smr06_method_1st_detection
 #CH - do we need full site name? We do not need all of these tumour groupings. Need to remove once we have more clarity.
-master_sample_file <- readRDS(paste0(data_path,"sample/2024.06.13_finalised_master_CPES_list.rds")) 
+master_sample_file <- readRDS(paste0(data_path,"sample/2024.07.15_finalised_master_CPES_list.rds")) 
 ls(master_sample_file)
-master_sample_file <- master_sample_file %>%
+master_sample_file <- master_sample_file %>%     #cancer_group_smr06 UPDATE BELOW
   select(uniquepatientsurveyid,smr01_sex,smr01_sex_label,age_chi,age_group_chi,simd2020v2_sc_quintile_smr01,ur6_2020_smr01,ur6_2020_name_smr01,
          hscp2019,hscp2019name,smr01_hbtreat_keydate,board_of_treatment,smr01_hbres_keydate,board_of_residence,network_of_residence_smr01,network_of_treatment_smr01,
          smr01_location,smr01_location2,smr01_locname,full_site_name,smr06_stage,smr06_method_1st_detection,smr06_method_1st_detection_description,
