@@ -23,7 +23,7 @@
 #analysis_output_path,"tumour_output.xlsx"
 #analysis_output_path,"tumour_output.rds"
 
-#cancer_group_smr06
+
 #to do: filter out allocation questions, no responses to tick all that apply type question, rename variables
 
 source("00.CPES_2024_set_up_packages.R")
@@ -32,12 +32,18 @@ source("00.CPES_2024_functions.R")
 
 #read in responses longer data####
 responses_longer <- readRDS(paste0(analysis_output_path,"responses_longer.rds"))
-#fix cancer networks names as can't work with numeric field. This doesn't belong here, but will move later.
-responses_longer <- responses_longer %>% 
-  mutate(network_of_tx = as.character(haven::as_factor(network_of_tx)),
-         network_of_residence_tx = as.character(haven::as_factor(network_of_residence_tx)),
-         no_wt = 1)
-table(responses_longer$response_option)
+
+responses_longer <- responses_longer %>%   mutate(no_wt = 1) #add a no_wt variable for cancer centres
+
+table(responses_longer$response_option[responses_longer$question == "q55"],useNA = c("always"))
+mean(as.numeric(responses_longer$response_option[responses_longer$question == "q55"]),na.rm = TRUE)
+sum(as.numeric(responses_longer$response_option[responses_longer$question == "q55"])*
+      responses_longer$nat_wt[responses_longer$question == "q55"],na.rm = TRUE)/
+  sum(responses_longer$nat_wt[responses_longer$question == "q55"],na.rm = TRUE)
+
+check_q55 <- responses_longer %>% 
+  filter(question == "q55")
+write.xlsx(check_q55,paste0(analysis_output_path,"check_q55.xlsx"))
 
 #read in lookups
 hb_names <- read.csv(paste0(lookup_path,"SMRA.ANALYSIS.HEALTH_BOARD.csv"))%>% 
@@ -46,7 +52,6 @@ hb_names <- read.csv(paste0(lookup_path,"SMRA.ANALYSIS.HEALTH_BOARD.csv"))%>%
   rename(hb_name = DESCRIPTION) %>% 
   filter(hb_code != "")
 
-#haven::print_labels(x= responses_longer$board_of_tx)
 question_lookup <- readRDS(paste0(lookup_path,"question_lookup.rds")) %>% select(-response_value,-response_text) #read in lookup 
 responses_longer <- responses_longer %>% 
   left_join(question_lookup,by = c("question","response_option","cancercentreallocation")) %>% 
@@ -63,7 +68,7 @@ aggregate_responses <- function(report_areas,wt) {
     mutate(response = 1) %>% 
     as_survey_design(weights = {{wt}}) %>% 
     group_by("report_area" = {{report_areas}},question,response_text_analysis) %>%
-    summarise(survey_prop(na.rm = TRUE,vartype = c("ci"),level = 0.95,proportion = TRUE,deff = FALSE),
+    summarise(wgt_percent = survey_prop(na.rm = TRUE,vartype = c("ci"),level = 0.95,proportion = TRUE,deff = FALSE),
               n_response = n(),
               n_wgt_response = sum({{wt}})) %>% 
     group_by(report_area,question) %>%
@@ -100,7 +105,7 @@ df <- aggregate_responses(cancer_centre,no_wt)
 cc <- expand_table(df)%>%  mutate(level = "Cancer centre")
 
 df <- aggregate_responses(tumour_group_text,nat_wt)
-tmt <- expand_table(df)%>%  mutate(level = "Tumour group")
+cg <- expand_table(df)%>%  mutate(level = "Cancer group")
 
 saveRDS(nat, paste0(analysis_output_path,"nat.rds"))
 saveRDS(nett, paste0(analysis_output_path,"nett.rds"))
@@ -110,6 +115,25 @@ saveRDS(hbr, paste0(analysis_output_path,"hbr.rds"))
 saveRDS(cc, paste0(analysis_output_path,"cc.rds"))
 saveRDS(tmt, paste0(analysis_output_path,"tmt.rds"))
 
+#run average for question 55 
+#define the aggregate function.####
+aggregate_responses_average <- function(report_areas,wt) {
+  responses_longer <- responses_longer %>%
+    filter(question == "q55") %>% 
+    mutate(question == "q55_ave",
+           response = 1,
+           response_option = as.numeric(response_option)) %>% 
+    as_survey_design(weights = {{wt}}) %>% 
+    group_by("report_area" = {{report_areas}},question) %>%
+    summarise('wgt_mean' = survey_mean(response_option,na.rm = TRUE,vartype = c("ci"),level = 0.95,proportion = FALSE,deff = FALSE),
+              n_response = n(),
+              n_wgt_response = sum({{wt}}),
+              mean = mean(response_option)) %>% 
+    group_by(report_area,question) %>%
+    mutate(n_includedresponses = sum(n_response),
+           n_wgt_includedresponses = sum(n_wgt_response))}
+df <- aggregate_responses_average(scotland,nat_wt)
+nat_q55 <- df %>%  mutate(level = "Scotland")
 ################
 
 output <- distinct(bind_rows(nat,nett,netr,hbt,hbr,cc)) %>% 
@@ -127,7 +151,6 @@ output <- distinct(bind_rows(nat,nett,netr,hbt,hbr,cc)) %>%
                                       report_area == "3" ~ "WOSCAN",
                                       report_area == "4" ~ "No network",
                                       TRUE ~ report_area)) %>% 
-  rename(wgt_percent = coef) %>% 
   mutate(percent = n_response / n_includedresponses)
 saveRDS(output, paste0(analysis_output_path,"provisional_output.rds"))
 
