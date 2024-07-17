@@ -25,7 +25,7 @@ source("00.CPES_2024_functions.R")
 
 # Get prepared dataset that lists all cases (respondents and non-respondents).
 validated_results <- readRDS(paste0(analysis_output_path,"validated_results.rds")) 
-
+table(validated_results$tumour_group_text)
 ls(validated_results)
 
 #Step 1:  Calculate weights for each level of reporting.####
@@ -125,7 +125,6 @@ sg_responses_file <- phs_responses_file %>%
 
 #check if the same as before
 hist.file <- readRDS(paste0(analysis_output_path,"sg_responses_with_weights.rds")) 
-identical(hist.file,sg_responses_file) 
-all_equal(hist.file,sg_responses_file) 
+all.equal(hist.file,sg_responses_file) 
 
 saveRDS(sg_responses_file,paste0(analysis_output_path,"sg_responses_with_weights.rds"))
