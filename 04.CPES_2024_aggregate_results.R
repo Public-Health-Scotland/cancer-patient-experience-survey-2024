@@ -200,7 +200,7 @@ output <- output %>%
 
 table(output$report_area_name,useNA = c("always"))
 
-cancer_group_output <- distinct(bind_rows(nat,tmt)) %>% 
+cancer_group_output <- distinct(bind_rows(nat,cg,cg_q55)) %>% 
   left_join(question_lookup, by = c("question","response_text_analysis","response_option")) %>% 
   arrange(level,report_area,question,response_option) %>%
   filter(!question_type %in% c(NA)) # to remove duplicated negative values
