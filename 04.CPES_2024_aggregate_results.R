@@ -188,7 +188,7 @@ question_lookup <- readRDS(paste0(lookup_path,"question_lookup.rds"))
 question_lookup <- question_lookup %>% 
   select(-response_value) %>%
   filter(!response_text_analysis %in% c(NA,"Exclude")) %>% 
-  group_by(question,question_type,response_text_analysis,`2018_question`,`2015_question`,response_value) %>% 
+  group_by(question,question_type,response_text_analysis,`2018_question`,`2015_question`) %>% 
   summarise(response_option = first(response_option))
 #`2018_question`,`2018_option`,`2015_question`,`2015_option`
 
@@ -200,12 +200,12 @@ output <- output %>%
 
 table(output$report_area_name,useNA = c("always"))
 
-tumour_output <- distinct(bind_rows(nat,tmt)) %>% 
+cancer_group_output <- distinct(bind_rows(nat,tmt)) %>% 
   left_join(question_lookup, by = c("question","response_text_analysis","response_option")) %>% 
   arrange(level,report_area,question,response_option) %>%
   filter(!question_type %in% c(NA)) # to remove duplicated negative values
 
 write.xlsx(output,paste0(analysis_output_path,"output.xlsx"))
 saveRDS(output, paste0(analysis_output_path,"output.rds"))
-write.xlsx(tumour_output,paste0(analysis_output_path,"cancer_gorup_output.xlsx"))
-saveRDS(tumour_output, paste0(analysis_output_path,"tumour_output.rds"))
+write.xlsx(cancer_group_output,paste0(analysis_output_path,"cancer_group_output.xlsx"))
+saveRDS(cancer_group_output, paste0(analysis_output_path,"cancer_group_output.rds"))
