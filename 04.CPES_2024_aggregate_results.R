@@ -183,9 +183,10 @@ write.xlsx(output,paste0(analysis_output_path,"provisional_output.xlsx"))
 #######
 
 output <- readRDS(paste0(analysis_output_path,"provisional_output.rds"))
-question_lookup <- readRDS(paste0(lookup_path,"question_lookup.rds"))  #read in lookup again to get response option don't include reposne_vlaue
+question_lookup <- readRDS(paste0(lookup_path,"question_lookup.rds")) 
 
 question_lookup <- question_lookup %>% 
+  select(-response_value) %>%
   filter(!response_text_analysis %in% c(NA,"Exclude")) %>% 
   group_by(question,question_type,response_text_analysis,`2018_question`,`2015_question`,response_value) %>% 
   summarise(response_option = first(response_option))
