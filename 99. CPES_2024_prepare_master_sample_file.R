@@ -59,7 +59,7 @@ master_sample_file <- master_sample_file %>%
 table(master_sample_file$pc7flag) 
 
 #read in tumour groups for weighting
-CPES_2018_Lookup_Tumour_Group <- read_excel(paste0(lookup_path,"CPES 2018 - Lookup - Tumour Group.xlsx")) %>% 
+CPES_cancer_group <- read_excel(paste0(lookup_path,"CPES_2024_Cancer_Group_Lookup.xlsx")) %>% 
   rename_with(tolower) 
 
 #Add tumour groups for weighting. These may need to be updated. TBC = Other? Not sure if brain and sarcoma should be provided spearately. They were combined for weighting purposes.
@@ -72,9 +72,8 @@ master_sample_file <- master_sample_file %>%
                                        tumour_group_smr06 %in% c(1,9) ~ "Other",#combines the least common tumour types (brain and sarcoma) into "Other"
                                        TRUE ~ tumour_group_text_smr06))
 
-#read in cancer groups for analysis grouping
-CPES_cancer_group <- read_excel(paste0(lookup_path,"CPES_2024_Cancer_Group_Lookup.xlsx")) %>% 
-  rename_with(tolower) %>% 
+#prepare cancer groups for analysis grouping
+CPES_cancer_group <- CPES_cancer_group %>% 
   rename("cancer_group_smr06" = "cancer_group") %>% 
   select(smr06_site10,cancer_group_smr06)
 
@@ -121,8 +120,8 @@ master_sample_file <- master_sample_file %>%
   
 #Save out updated version of Master Sample File for completeness
 #check if the same as before
-hist.file <- readRDS(paste0(data_path,"sample/2024.06.13_finalised_master_CPES_list.rds")) 
-all_equal(hist.file,master_sample_file) 
+hist.file <- readRDS(paste0(data_path,"sample/2024.07.15_finalised_master_CPES_list.rds")) 
+all.equal(hist.file,master_sample_file) 
 #Save out reformatted data
-saveRDS(master_sample_file, paste0(data_path,"sample/2024.07.15_finalised_master_CPES_list.rds"))
+saveRDS(master_sample_file, paste0(data_path,"sample/2024.07.17_finalised_master_CPES_list.rds"))
 ls(master_sample_file)
