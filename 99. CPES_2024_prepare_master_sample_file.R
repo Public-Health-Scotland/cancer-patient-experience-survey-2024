@@ -62,7 +62,7 @@ table(master_sample_file$pc7flag)
 CPES_cancer_group <- read_excel(paste0(lookup_path,"CPES_2024_Cancer_Group_Lookup.xlsx")) %>% 
   rename_with(tolower) 
 
-#Add tumour groups for weighting. These may need to be updated. TBC = Other? Not sure if brain and sarcoma should be provided spearately. They were combined for weighting purposes.
+#Add tumour groups for weighting. These may need to be updated. Brain and sarcoma to be grouped together with "Other". They were combined for weighting purposes.
 
 master_sample_file <- master_sample_file %>% 
   mutate(tumour_group_2_smr06 = case_when(tumour_group_smr06 == 99 ~ 14,# Where tumour group can't be established, set the tumour group to 14 (Cancer Group Unknown).
