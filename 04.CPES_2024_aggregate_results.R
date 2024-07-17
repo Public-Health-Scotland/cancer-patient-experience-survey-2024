@@ -182,6 +182,10 @@ write.xlsx(output,paste0(analysis_output_path,"provisional_output.xlsx"))
 
 #######
 
+source("00.CPES_2024_set_up_packages.R")
+source("00.CPES_2024_set_up_file_paths.R")
+source("00.CPES_2024_functions.R")
+
 output <- readRDS(paste0(analysis_output_path,"provisional_output.rds"))
 question_lookup <- readRDS(paste0(lookup_path,"question_lookup.rds")) 
 
@@ -196,14 +200,37 @@ output <- output %>%
   select(-hb_name) %>% 
   left_join(question_lookup, by = c("question","response_text_analysis","response_option")) %>% 
   arrange(level,report_area,question,response_option) %>%
-  filter(!question_type %in% c(NA)) # to remove duplicated negative values 
+  filter(!question_type %in% c(NA)) # to remove duplicated negative values
 
 table(output$report_area_name,useNA = c("always"))
 
+#Code to deal with 'tick all that apply' questions in output.
+#Removes the "No" response to the "tick all that apply" questions q07a-f, q46a-j, q47a01_1-q47b07_5, q50a_1-q50e_6, q51a_1-q51e_6, q61a-k####
+output<- output %>%
+  mutate(information_questions_tata = case_when(question_type == "Information (tick all that apply)" & response_text_analysis == "No" ~ question)) %>%
+  mutate(tata_remove = case_when(question_type == "Information (tick all that apply)" & response_text_analysis == "No" ~ 1)) %>%
+  mutate(question = substr(question,1,3))
+output <- output %>%
+  filter(is.na(tata_remove))
+table(output$information_questions_tata)
+rm(output$information_questions_tata,output$tata_remove)
+
+#Create cancer_group_output####
 cancer_group_output <- distinct(bind_rows(nat,cg,cg_q55)) %>% 
   left_join(question_lookup, by = c("question","response_text_analysis","response_option")) %>% 
   arrange(level,report_area,question,response_option) %>%
   filter(!question_type %in% c(NA)) # to remove duplicated negative values
+
+#Code to deal with 'tick all that apply' questions in cancer_group_output
+#Removes the "No" response to the "tick all that apply" questions q07a-f, q46a-j, q47a01_1-q47b07_5, q50a_1-q50e_6, q51a_1-q51e_6, q61a-k####
+cancer_group_output <- cancer_group_output %>%
+  mutate(information_questions_tata = case_when(question_type == "Information (tick all that apply)" & response_text_analysis == "No" ~ question)) %>%
+  mutate(tata_remove = case_when(question_type == "Information (tick all that apply)" & response_text_analysis == "No" ~ 1)) %>%
+  mutate(question = substr(question,1,3))
+cancer_group_output <- cancer_group_output %>%
+  filter(is.na(tata_remove))
+table(cancer_group_output$information_questions_tata)
+rm(cancer_group_outpu$information_questions_tata,cancer_group_outpu$tata_remove)
 
 write.xlsx(output,paste0(analysis_output_path,"output.xlsx"))
 saveRDS(output, paste0(analysis_output_path,"output.rds"))
