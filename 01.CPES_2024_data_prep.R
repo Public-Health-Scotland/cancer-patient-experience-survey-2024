@@ -119,9 +119,9 @@ sg_unrouted_data <- readRDS(paste0(data_path,"Results from Contractor/Final_unro
 
 ##Produce final unrouted data file for SG ####
 sg_unrouted_data <- sg_unrouted_data %>%
-  select(-qh_psid,-paper.questionnaire.id,-patientid,-smr01_location,location_2,-full_site_name,-age_chi,
+  select(-qh_psid,-paper.questionnaire.id,-patientid,-smr01_location,-location_2,-full_site_name,-age_chi,
          -network_of_residence_tx,-network_of_tx,
-         -tumour_group_2_smr06,-tumour_group_text,-cancer_group_smr06,iqvia_exclude,additional_exclusion_flag) %>%
+         -tumour_group_2_smr06,-tumour_group_text,-cancer_group_smr06,-iqvia_exclude,-additional_exclusion_flag) %>%
   relocate(patientid_sg, .before = responsecode) #relocate patientid_sg
 hist.file <- readRDS(paste0(analysis_output_path,"anonymised_unvalidated_response_data_with_patient_data_for_SG.rds")) 
 identical(hist.file,contractor_data) 
