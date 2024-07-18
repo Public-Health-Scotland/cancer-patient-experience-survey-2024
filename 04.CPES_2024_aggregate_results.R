@@ -202,18 +202,28 @@ output <- output %>%
   arrange(level,report_area,question,response_option) %>%
   filter(!question_type %in% c(NA)) # to remove duplicated negative values
 
-table(output$report_area_name,useNA = c("always"))
-
+table(output$question[output$question_type== "Information (tick all that apply)"])
 #Code to deal with 'tick all that apply' questions in output.
 #Removes the "No" response to the "tick all that apply" questions q07a-f, q46a-j, q47a01_1-q47b07_5, q50a_1-q50e_6, q51a_1-q51e_6, q61a-k####
+#tidies question numbers, text, response options and response text
 output<- output %>%
   mutate(information_questions_tata = case_when(question_type == "Information (tick all that apply)" & response_text_analysis == "No" ~ question)) %>%
   mutate(tata_remove = case_when(question_type == "Information (tick all that apply)" & response_text_analysis == "No" ~ 1)) %>%
-  mutate(question = substr(question,1,3))
+  mutate(response_option = case_when(grepl("tick",question_type) == TRUE & nchar(question) == 4 ~
+                                       str_extract(question,"[[:alpha:]]$"), #if tick all that apply in format, eg q07a, extract final letter from question to be response option
+                                     grepl("tick",question_type) == TRUE & grepl("_",question) == TRUE ~ #if tick all that apply in format, eg q47a01_1, extract final number from question to be response option
+                                       str_extract(question,"[[:digit:]]$"),
+                                      TRUE ~ response_option),
+        question = case_when(grepl("tick",question_type) == TRUE & nchar(question) == 4 ~ substr(question,1,3), #if tick all that apply in format, eg q07a, extract original question number
+                         grepl("tick",question_type) == TRUE & grepl("_",question) == TRUE ~ substr(question,1,str_locate(question,"_")[,1]-1),   #eg if tick all that apply in format, eg q47a01_1, extract original question number
+                         TRUE ~ question),
+        response_text_analysis = case_when(grepl("tick",question_type) == TRUE & response_text_analysis == "Yes"  ~ substr(question_text,str_locate(question_text,"\\?")[,1]+1,nchar(question_text)),   #eg if tick all that apply in format, extract response text
+                             TRUE ~ response_text_analysis),
+        response_text_analysis = str_trim(response_text_analysis, side = c("both"))) #tidy text
+
 output <- output %>%
-  filter(is.na(tata_remove))
-table(output$information_questions_tata)
-rm(output$information_questions_tata,output$tata_remove)
+  filter(is.na(tata_remove)) %>%
+  select(-information_questions_tata,-tata_remove)
 
 #Create cancer_group_output####
 cancer_group_output <- distinct(bind_rows(nat,cg,cg_q55)) %>% 
