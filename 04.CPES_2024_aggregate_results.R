@@ -196,8 +196,17 @@ output_q55ave <- distinct(bind_rows(nat_q55,nett_q55,netr_q55,hbt_q55,hbr_q55,cc
                                       report_area == "4" ~ "No network",
                                       TRUE ~ report_area)) %>% 
   mutate(percent = n_response / n_includedresponses)
+
 saveRDS(output_q55ave, paste0(analysis_output_path,"provisional_output_q55ave.rds"))
 write.xlsx(output_q55ave,paste0(analysis_output_path,"provisional_output_q55ave.xlsx"))
+
+output_q55ave <- output_q55ave %>%
+  select(-report_area,-hb_name,-percent) 
+output_q55ave <- output_q55ave %>%
+  select(-report_area)
+
+saveRDS(output_q55ave, paste0(analysis_output_path,"output_q55ave.rds"))
+write.xlsx(output_q55ave,paste0(analysis_output_path,"output_q55ave.xlsx"))
 
 #######
 
