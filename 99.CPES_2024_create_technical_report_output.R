@@ -31,9 +31,10 @@
 #	75+
 #Response rate by sex:
 #Response rate by NHS Board of Treatment
+#Response rate by NHS Board of Residence
 #Response rate by Deprivation (quintile)
 #Response rate by urban / rural category
-#Response rate by Tumour Group
+#Response rate by Cancer Group
 #Response by method
 
 
@@ -47,36 +48,18 @@ source("00.CPES_2024_functions.R")
 Final_Master_Sample_File <- readRDS(paste0(data_path,"sample/2024.07.17_finalised_master_CPES_list.rds"))
 ls(Final_Master_Sample_File)
 Final_Master_Sample_File <- Final_Master_Sample_File %>%
-  select(uniquepatientsurveyid,iqvia_flagdate,iqvia_exclude)
+  select(uniquepatientsurveyid,iqvia_flagdate,iqvia_exclude)#iqvia_exclude already in "validated_results.rds"
 Final_Master_Sample_File$flag = 1
 
 #Read in list on selected patients for surveying - this also returns validated results to obtain survey respondents and response method####
-patient_info <- readRDS(paste0(analysis_output_path,"validated_results.rds")) 
-#match on Master Sample File information####
-patient_info <- left_join(patient_info,Final_Master_Sample_File,by = c("patientid" = "uniquepatientsurveyid"))
-## Deaths: Were there any cases where: ####
-# * 1) the patient died, but completed the survey prior to death? Yes: these cases will remain in the sample.
-# * 2) the patient died, but this was not picked-up by NHSCR / CHILI? 
-#      (i.e. Notified by family and after last mailout day) Yes: these cases will be removed from the sample.
-## Code into respondents / non-respondents and remove patients who were excluded from the sample before final analysis. ####
-# * Recode Response.Code into patients who responded to the survey and those who did not. 
-# * Also flag patients who should be excluded from the sample (patients who had moved, were deceased, were ineligible or were distressed).
-patient_info <- patient_info %>% 
-  mutate(Responded = case_when(responsecode == 1~ 1, #Responded
-                               responsecode %in% c(4,6,NA) ~ 2, #Did not respond
-                               responsecode %in% c(2, 3, 5, 7) ~ 3, #Exclude
-                               TRUE ~ 9))
-table(patient_info$Responded,patient_info$responsecode,useNA = c("always"))
-table(patient_info$Responded,useNA = c("always"))
-patient_info <- patient_info %>% 
-  filter(Responded != 3)
+patient_info <- readRDS(paste0(analysis_output_path,"validated_results.rds")) #after exclusions (i.e.patients who had moved, were deceased, were ineligible or were distressed)
 rm(Final_Master_Sample_File)
 patient_info$flag <- NULL
 
 patient_info <- patient_info %>%
   mutate(across(everything(), ~ replace(.x, is.na(.x), "")))
 
-#Table # Response rate by submission method (PUBLISHED)####
+#Table 1 Response rate by submission method (PUBLISHED)####
 #CALCULATE TOTAL NUMBER OF RESPONSES (bottom line of df "Total").
 Submission_Response_rate_base <- subset(patient_info, responsecode == 1)
 Submission_Response_rate_all <- Submission_Response_rate_base %>%
@@ -88,7 +71,7 @@ Submission_Response_rate_all$percent <- percent (Submission_Response_rate_all$pe
 
 #Rename column "responsecode" to "Method" for later merging
 colnames(Submission_Response_rate_all)[which(names(Submission_Response_rate_all) == "responsecode")] <-"Method"
-Submission_Response_rate_all$Method[Submission_Response_rate_all$Method=="1"] <- "Total"
+Submission_Response_rate_all$Method[Submission_Response_rate_all$Method=="1"] <- "Scotland"
 
 #CALCULATE NUMBER OF RESPONSES BY SUBMISSION METHOD
 Submission_Response_rate <- Submission_Response_rate_base %>%
@@ -110,7 +93,7 @@ rm(Submission_Response_rate_base)
 rm(Submission_Response_rate_all)
 rm(Submission_Response_rate)
 
-#SET A SCOTLAND LEVEL RESPONSE RATE LINE####
+#SET SCOTLAND LEVEL RESPONSE RATE LINE####
 #Recalculate total number of forms sent out.
 patient_info <- patient_info %>% 
   mutate(Scotland_mark=1)
@@ -144,8 +127,8 @@ SCOTLAND_Response_rate_OVERALL$Response_Rate <- percent (SCOTLAND_Response_rate_
 rm(SCOTLAND_Response_rate_base)
 rm(SCOTLAND_Response_rate)
 
-#Table # Response rate by Health Board of treatment####
 
+#Table 2 Response rate by Health Board of treatment####
 #CALCULATE TOTAL NUMBER OF RESPONSES (bottom line of df "Total").  
 HB_Response_rate_all <- patient_info %>%
   count(board_of_treatment) %>%
@@ -181,8 +164,43 @@ colnames(SCOTLAND_Response_rate_OVERALL)[which(names(SCOTLAND_Response_rate_OVER
 HB_Response_rate_OVERALL <-bind_rows(HB_Response_rate_OVERALL,SCOTLAND_Response_rate_OVERALL)
 
 
-#Table # Response rate by deprivation quintile ####
+#Table 3 Response rate by Health Board of residence####
+#CALCULATE TOTAL NUMBER OF RESPONSES (bottom line of df "Total").  
+HBR_Response_rate_all <- patient_info %>%
+  count(board_of_residence) %>%
+  group_by(board_of_residence) 
 
+#Rename column "n" to "Total_number_of_forms_sent_out" for later merging - UPDATE THIS MINI-SECTION AS NECESSARY
+colnames(HBR_Response_rate_all)[which(names(HBR_Response_rate_all) == "n")] <-"Total_number_of_forms_sent_out"
+
+#CALCULATE NUMBER OF RESPONSES BY HBR
+HBR_Response_rate_base <- subset(patient_info, responsecode == 1)
+HBR_Response_rate <- HBR_Response_rate_base %>%
+  count(board_of_residence)
+
+#Rename column "n" to "Number_of_Responses" for later merging - UPDATE THIS MINI-SECTION AS NECESSARY
+colnames(HBR_Response_rate)[which(names(HBR_Response_rate) == "n")] <-"Number_of_Responses"
+
+#CREATE df "HBR_Response_rate_OVERALL"
+HBR_Response_rate_OVERALL <- left_join(HBR_Response_rate_all,HBR_Response_rate,by = c("board_of_residence"))
+
+#Calculate percentage response
+HBR_Response_rate_OVERALL <- HBR_Response_rate_OVERALL %>%
+  mutate(Response_Rate=(Number_of_Responses/Total_number_of_forms_sent_out))
+HBR_Response_rate_OVERALL$Response_Rate <- percent (HBR_Response_rate_OVERALL$Response_Rate)
+
+rm(HBR_Response_rate_all)
+rm(HBR_Response_rate_base)
+rm(HBR_Response_rate)
+
+#IN SCOTLAND_Response_rate_OVERALL Rename column "Practice_Population" to "board_of_treatment" for merging - UPDATE THIS MINI-SECTION AS NECESSARY
+colnames(SCOTLAND_Response_rate_OVERALL)[which(names(SCOTLAND_Response_rate_OVERALL) == "board_of_treatment")] <-"board_of_residence"
+
+#CREATE df HB_Response_rate_OVERALL"
+HBR_Response_rate_OVERALL <-bind_rows(HBR_Response_rate_OVERALL,SCOTLAND_Response_rate_OVERALL)
+
+
+#Table 4 Response rate by deprivation quintile ####
 #CALCULATE TOTAL NUMBER OF RESPONSES (bottom line of df "Total").  
 SIMD_Response_rate_all <- patient_info %>%
   count(simd2020v2_sc_quintile_smr01) %>%
@@ -215,13 +233,13 @@ rm(SIMD_Response_rate)
 SIMD_Response_rate_OVERALL$simd2020v2_sc_quintile_smr01 <- as.character(SIMD_Response_rate_OVERALL$simd2020v2_sc_quintile_smr01)
 
 #IN SCOTLAND_Response_rate_OVERALL Rename column "practice_hscp_name" to "simd2020v2_sc_quintile_smr01" for merging - UPDATE THIS MINI-SECTION AS NECESSARY
-colnames(SCOTLAND_Response_rate_OVERALL)[which(names(SCOTLAND_Response_rate_OVERALL) == "board_of_treatment")] <-"simd2020v2_sc_quintile_smr01"
+colnames(SCOTLAND_Response_rate_OVERALL)[which(names(SCOTLAND_Response_rate_OVERALL) == "board_of_residence")] <-"simd2020v2_sc_quintile_smr01"
 
 #CREATE df SIMD_Response_rate_OVERALL"
 SIMD_Response_rate_OVERALL <-bind_rows(SIMD_Response_rate_OVERALL,SCOTLAND_Response_rate_OVERALL)
 
-#Table # Response rate by urban / rural location ####
 
+#Table 5 Response rate by urban / rural location ####
 #CALCULATE TOTAL NUMBER OF RESPONSES (bottom line of df "Total").  
 UR6_Response_rate_all <- patient_info %>%
   count(ur6_2020_smr01) %>%
@@ -259,12 +277,15 @@ colnames(SCOTLAND_Response_rate_OVERALL)[which(names(SCOTLAND_Response_rate_OVER
 #CREATE df SIMD_Response_rate_OVERALL"
 UR6_Response_rate_OVERALL <-bind_rows(UR6_Response_rate_OVERALL,SCOTLAND_Response_rate_OVERALL)
 
-#Table # Response rate by age group ####
+
+#Table 6 Response rate by age group ####
+patient_info <- patient_info %>%
+  mutate(age_band_6 = six_age_bands(age_chi))
 
 #CALCULATE TOTAL NUMBER OF RESPONSES (bottom line of df "Total").  
 Age_Response_rate_all <- patient_info %>%
-  count(age_group_chi) %>%
-  group_by(age_group_chi) 
+  count(age_band_6) %>%
+  group_by(age_band_6) 
 
 #Rename column "n" to "Total_number_of_forms_sent_out" for later merging - UPDATE THIS MINI-SECTION AS NECESSARY
 colnames(Age_Response_rate_all)[which(names(Age_Response_rate_all) == "n")] <-"Total_number_of_forms_sent_out"
@@ -272,13 +293,13 @@ colnames(Age_Response_rate_all)[which(names(Age_Response_rate_all) == "n")] <-"T
 #CALCULATE NUMBER OF RESPONSES BY AGE
 Age_Response_rate_base <- subset(patient_info, responsecode == 1)
 Age_Response_rate <- Age_Response_rate_base %>%
-  count(age_group_chi)
+  count(age_band_6)
 
 #Rename column "n" to "Number_of_Responses" for later merging - UPDATE THIS MINI-SECTION AS NECESSARY
 colnames(Age_Response_rate)[which(names(Age_Response_rate) == "n")] <-"Number_of_Responses"
 
 #CREATE df "SIMD_Response_rate_OVERALL"
-Age_Response_rate_OVERALL <- left_join(Age_Response_rate_all,Age_Response_rate,by = c("age_group_chi"))
+Age_Response_rate_OVERALL <- left_join(Age_Response_rate_all,Age_Response_rate,by = c("age_band_6"))
 
 #Calculate percentage response
 Age_Response_rate_OVERALL <- Age_Response_rate_OVERALL %>%
@@ -290,12 +311,13 @@ rm(Age_Response_rate_base)
 rm(Age_Response_rate)
 
 #IN SCOTLAND_Response_rate_OVERALL Rename column "ur6_2020" to "age_band_6" for merging - UPDATE THIS MINI-SECTION AS NECESSARY
-colnames(SCOTLAND_Response_rate_OVERALL)[which(names(SCOTLAND_Response_rate_OVERALL) == "ur6_2020_smr01")] <-"age_group_chi"
+colnames(SCOTLAND_Response_rate_OVERALL)[which(names(SCOTLAND_Response_rate_OVERALL) == "ur6_2020_smr01")] <-"age_band_6"
 
 #CREATE df SIMD_Response_rate_OVERALL"
 Age_Response_rate_OVERALL <-bind_rows(Age_Response_rate_OVERALL,SCOTLAND_Response_rate_OVERALL)
 
-#Table # Response rate by sex ####
+
+#Table 7 Response rate by sex ####
 #CALCULATE TOTAL NUMBER OF RESPONSES (bottom line of df "Total").  
 Sex_Response_rate_all <- patient_info %>%
   count(smr01_sex_label) %>%
@@ -325,49 +347,47 @@ rm(Sex_Response_rate_base)
 rm(Sex_Response_rate)
 
 #IN SCOTLAND_Response_rate_OVERALL Rename column "age_band_6" to "SEX_DESC" for merging - UPDATE THIS MINI-SECTION AS NECESSARY
-colnames(SCOTLAND_Response_rate_OVERALL)[which(names(SCOTLAND_Response_rate_OVERALL) == "age_group_chi")] <-"smr01_sex_label"
+colnames(SCOTLAND_Response_rate_OVERALL)[which(names(SCOTLAND_Response_rate_OVERALL) == "age_band_6")] <-"smr01_sex_label"
 
 #CREATE df SIMD_Response_rate_OVERALL"
 Sex_Response_rate_OVERALL <-bind_rows(Sex_Response_rate_OVERALL,SCOTLAND_Response_rate_OVERALL)
 
 
-#Table # Response rate by Tumour Group####
-
+#Table 8 Response rate by cancer group####
 #CALCULATE TOTAL NUMBER OF RESPONSES (bottom line of df "Total").  
-Tumour_group_Response_rate_all <- patient_info %>%
-  count(tumour_group_text) %>%
-  group_by(tumour_group_text) 
+Cancer_group_Response_rate_all <- patient_info %>%
+  count(cancer_group_smr06) %>%
+  group_by(cancer_group_smr06) 
 
 #Rename column "n" to "Total_number_of_forms_sent_out" for later merging - UPDATE THIS MINI-SECTION AS NECESSARY
-colnames(Tumour_group_Response_rate_all)[which(names(Tumour_group_Response_rate_all) == "n")] <-"Total_number_of_forms_sent_out"
+colnames(Cancer_group_Response_rate_all)[which(names(Cancer_group_Response_rate_all) == "n")] <-"Total_number_of_forms_sent_out"
 
-#CALCULATE NUMBER OF RESPONSES BY Tumour_group
-Tumour_group_Response_rate_base <- subset(patient_info, responsecode == 1)
-Tumour_group_Response_rate <- Tumour_group_Response_rate_base %>%
-  count(tumour_group_text)
+#CALCULATE NUMBER OF RESPONSES BY Cancer_group
+Cancer_group_Response_rate_base <- subset(patient_info, responsecode == 1)
+Cancer_group_Response_rate <- Cancer_group_Response_rate_base %>%
+  count(cancer_group_smr06)
 
 #Rename column "n" to "Number_of_Responses" for later merging - UPDATE THIS MINI-SECTION AS NECESSARY
-colnames(Tumour_group_Response_rate)[which(names(Tumour_group_Response_rate) == "n")] <-"Number_of_Responses"
+colnames(Cancer_group_Response_rate)[which(names(Cancer_group_Response_rate) == "n")] <-"Number_of_Responses"
 
-#CREATE df "Tumour_group_Response_rate_OVERALL"
-Tumour_group_Response_rate_OVERALL <- left_join(Tumour_group_Response_rate_all,Tumour_group_Response_rate,by = c("tumour_group_text"))
+#CREATE df "Cancer_group_Response_rate_OVERALL"
+Cancer_group_Response_rate_OVERALL <- left_join(Cancer_group_Response_rate_all,Cancer_group_Response_rate,by = c("cancer_group_smr06"))
 
 #Calculate percentage response
-Tumour_group_Response_rate_OVERALL <- Tumour_group_Response_rate_OVERALL %>%
+Cancer_group_Response_rate_OVERALL <- Cancer_group_Response_rate_OVERALL %>%
   mutate(Response_Rate=(Number_of_Responses/Total_number_of_forms_sent_out))
-Tumour_group_Response_rate_OVERALL$Response_Rate <- percent (Tumour_group_Response_rate_OVERALL$Response_Rate)
+Cancer_group_Response_rate_OVERALL$Response_Rate <- percent (Cancer_group_Response_rate_OVERALL$Response_Rate)
 
-rm(Tumour_group_Response_rate_all)
-rm(Tumour_group_Response_rate_base)
-rm(Tumour_group_Response_rate)
+rm(Cancer_group_Response_rate_all)
+rm(Cancer_group_Response_rate_base)
+rm(Cancer_group_Response_rate)
 
-#IN SCOTLAND_Response_rate_OVERALL Rename column "Practice_Population" to "tumour_group_text" for merging - UPDATE THIS MINI-SECTION AS NECESSARY
-colnames(SCOTLAND_Response_rate_OVERALL)[which(names(SCOTLAND_Response_rate_OVERALL) == "smr01_sex_label")] <-"tumour_group_text"
+#IN SCOTLAND_Response_rate_OVERALL Rename column "Practice_Population" to "cancer_group_text" for merging - UPDATE THIS MINI-SECTION AS NECESSARY
+colnames(SCOTLAND_Response_rate_OVERALL)[which(names(SCOTLAND_Response_rate_OVERALL) == "smr01_sex_label")] <-"cancer_group_smr06"
 
-#CREATE df Tumour_group_Response_rate_OVERALL"
-Tumour_group_Response_rate_OVERALL <-bind_rows(Tumour_group_Response_rate_OVERALL,SCOTLAND_Response_rate_OVERALL)
+#CREATE df Cancer_group_Response_rate_OVERALL"
+Cancer_group_Response_rate_OVERALL <-bind_rows(Cancer_group_Response_rate_OVERALL,SCOTLAND_Response_rate_OVERALL)
 
-#DONE TO HERE####
 
 #Pick up reporting template and populate, save outfile as xlsx####
 
@@ -376,75 +396,48 @@ Table_Last_Updated <-Sys.Date()
 Table_Last_Updated <-format(Table_Last_Updated, format ="%d %B %Y")
 run_date <-data.frame(Table_Last_Updated)
 
-template <- loadWorkbook(paste0("output/technical report/technical_report_tables_template.xlsx"))
+template <- loadWorkbook(paste0(output_path,"technical_report/technical_report_tables_template.xlsx"))
 writeData(template, "Submission Method", Submission_Response_rate_OVERALL, startCol = 3, startRow = 6)
-writeData(template, "Practice List Size", Practice_Population_Response_rate_OVERALL, startCol = 2, startRow = 6)
-writeData(template, "Board", HB_Response_rate_OVERALL, startCol = 2, startRow = 6)
-writeData(template, "HSCP", HSCP_Response_rate_OVERALL, startCol = 2, startRow = 6)
+writeData(template, "HBT", HB_Response_rate_OVERALL, startCol = 2, startRow = 6)
+writeData(template, "HBR", HBR_Response_rate_OVERALL, startCol = 2, startRow = 6)
 writeData(template, "SIMD", SIMD_Response_rate_OVERALL, startCol = 2, startRow = 6)
 writeData(template, "UR6", UR6_Response_rate_OVERALL, startCol = 3, startRow = 6)
-writeData(template, "Sex", Sex_Response_rate_OVERALL, startCol = 2, startRow = 6)
 writeData(template, "Age", Age_Response_rate_OVERALL, startCol = 2, startRow = 6)
-
+writeData(template, "Sex", Sex_Response_rate_OVERALL, startCol = 2, startRow = 6)
+writeData(template, "Cancer Group", Cancer_group_Response_rate_OVERALL, startCol = 2, startRow = 6)
 
 writeData(template, "Submission Method", run_date, startCol = 1, startRow = 15)
-writeData(template, "Practice List Size", run_date, startCol = 1, startRow = 18)
-writeData(template, "Board", run_date, startCol = 1, startRow = 29)
-writeData(template, "HSCP", run_date, startCol = 1, startRow = 43)
-writeData(template, "SIMD", run_date, startCol = 1, startRow = 21)
-writeData(template, "UR6", run_date, startCol = 1, startRow = 20)
-writeData(template, "Sex", run_date, startCol = 1, startRow = 16)
+writeData(template, "HBT", run_date, startCol = 1, startRow = 27)
+writeData(template, "HBR", run_date, startCol = 1, startRow = 26)
+writeData(template, "SIMD", run_date, startCol = 1, startRow = 19)
+writeData(template, "UR6", run_date, startCol = 1, startRow = 18)
 writeData(template, "Age", run_date, startCol = 1, startRow = 18)
+writeData(template, "Sex", run_date, startCol = 1, startRow = 15)
+writeData(template, "Cancer Group", run_date, startCol = 1, startRow = 24)
 
-
-saveWorkbook(template, (paste0("output/technical report/2024_02_28_technical_report_populated_tables.xlsx")), overwrite =TRUE)
+saveWorkbook(template, (paste0(output_path,"technical_report/technical_report_populated_tables.xlsx")), overwrite =TRUE)
 
 ###################################################################################################################################
-
-#5.1 Technical report: count of removals for summary template####
-# Written by Martin Leitch
-# February 2022.
-
-# *****************************************
-# load in libraries
-library(readxl)
-#version 1.3.1
-library(tidyverse)
-#version 1.2.1
-library(readr)
-#version 1.3.1
-library(formattable)
-#version 0.2.1
-library(openxlsx)
-#version 4.2.5
-
-#Technical report output - removals note:
+#Technical report output - removals note: ####
 
 #Total No Sampled 
 #No Removed Pre Survey and Day 1 Mail Out (Deaths)
 #No Removed Pre Survey and Day 1 Mail Out (Other/Non Scots)
 #Total No Sent out 
-#Total Deaths Day 2 (Rest of Initial Mail Out)
-#Total No of Removals Sent to QH (after Day 2)
+#Total Deaths Day 2 (2nd Mail Out day)
+#Total Deaths Day 3 (3rd Mail Out day)
+#Total No of Removals Sent to QH (as part of the reminder mail out)
 
-#=========
-
-#Inputs: "data/sampling/Master Sample File/2023.12.01_master_HACE_list_post_mailout.parquet"
-#Output Template: "output/technical_report/removals_template.xlsx"
-#Outputs:"output/technical_report/sample_removals_note.xlsx"
-
-#Define directories
-setwd("/conf/bss/pat-exp-surveys/health-and-care/202324/")
+#Inputs: data_path,"sample/2024.07.17_finalised_master_CPES_list.rds"
+#Output Template: output_path,"technical_report/removals_template.xlsx"
+#Outputs:output_path,"technical_report/sample_removals_note.xlsx"
 
 #Read in list on selected patients for surveying
-master_list <- read_parquet("data/sampling/Master Sample File/2023.12.01_master_HACE_list_post_mailout.parquet", as_data_frame = FALSE) %>%
-  slice_head(n = 1) %>%
-  collect()
+master_list <- readRDS(paste0(data_path,"sample/2024.07.17_finalised_master_CPES_list.rds"))
 ls(master_list)
-master_list <- read_parquet("data/sampling/Master Sample File/2023.12.01_master_HACE_list_post_mailout.parquet",
-                            col_select = c("IQVIA_flagdate","nhscr_date","NHSCR_reason","chili_date","chili_reason",
-                                           "IQVIA_exclude","pre_survey_exclusion","reason","primary_exclusion_source"))
-colnames(master_list)<-tolower(colnames(master_list))  
+master_list <- master_list %>% 
+  select("iqvia_flagdate","nhscr_date","nhscr_reason","chili_date","chili_reason",
+                                           "iqvia_exclude","reason","additional_exclusion_flag")
 
 master_list$iqvia_flagdate <- as.character(master_list$iqvia_flagdate)
 master_list$nhscr_date <- as.character(master_list$nhscr_date)
@@ -455,110 +448,69 @@ master_list <- master_list %>%
 master_list <- master_list %>%
   mutate(marker=1)
 
-table(master_list$iqvia_flagdate)
-#2023-10-19 2023-10-23 2023-10-24 2023-10-25 2023-11-08 2023-11-09 2023-11-10 2023-11-13 2023-11-14 2023-11-15 2023-11-16 2023-11-17 
-#      1504        114         54         36        311         35         24         39         17         49         23         32  
-table(master_list$nhscr_date)
-#2023-10-12 2023-10-19 2023-10-23 2023-10-24 2023-10-25 2023-11-08 2023-11-09 2023-11-10 2023-11-13 2023-11-14 2023-11-15 2023-11-16 2023-11-17 
-#      1014        354         56         22         19        266         36         24         25         21         37         28         29 
-table(master_list$nhscr_reason)
-#Death Other 
-#  993   938
-table(master_list$chili_date)
-#2023-10-19 2023-10-23 2023-10-24 2023-10-25 2023-11-08 2023-11-09 2023-11-13 2023-11-15 2023-11-16 2023-11-17 
-#       911        154         64         50        169        145         34         85         39         15
-table(master_list$chili_reason)
-#CHI Redundant         Death   Transferred 
-#           25           949           692 
-table(master_list$pre_survey_exclusion)
-#  0    1 
-#620 1618
-table(master_list$reason)
-#Death Other 
-# 1016  1222
-table(master_list$primary_exclusion_source)
-#CHILI NHSCR 
-#  743  1495 
-table(master_list$iqvia_flagdate,master_list$reason)
-#           Death Other
-#2023-10-19   458  1046
-#2023-10-23    54    60
-#2023-10-24    27    27
-#2023-10-25    20    16
-#2023-11-08   238    73
-#2023-11-09    35     0
-#2023-11-10    24     0
-#2023-11-13    39     0
-#2023-11-14    17     0
-#2023-11-15    49     0
-#2023-11-16    23     0
-#2023-11-17    32     0
-
 #Line1 Total No Sampled ####
 Line1 <- master_list %>%
   count(marker) %>%
   group_by(marker) 
-Line1$marker[Line1$marker=="1"] <- "Total No Sampled" #528376
+Line1$marker[Line1$marker=="1"] <- "Total No Sampled" 
 
-#line2 No Removed Pre Survey and Day 1 Mail Out (Deaths)####
+#Line2 No Removed Pre Survey and Day 1 Mail Out (Deaths)####
 Line2 <- master_list %>%
-  filter((iqvia_flagdate =="2023-10-19" | iqvia_flagdate =="2023-10-23") & reason == "Death")
+  filter((iqvia_flagdate =="2024-02-07" | iqvia_flagdate =="2024-02-14") & reason == "Death")
 Line2 <- Line2 %>%
   count(marker) %>%
   group_by(marker) 
-Line2$marker[Line2$marker=="1"] <- "No Removed Pre Survey and Day 1 Mail Out (Deaths)" #512
+Line2$marker[Line2$marker=="1"] <- "No Removed Pre Survey and Day 1 Mail Out (Deaths)" 
 
 #Line3 No Removed Pre Survey and Day 1 Mail Out (Other/Non Scots)####
 Line3 <- master_list %>%
-  filter((iqvia_flagdate =="2023-10-19" & reason =="Other") | iqvia_flagdate =="2023-10-23" & reason =="Other")
+  filter((iqvia_flagdate =="2024-02-07" & reason =="Other") | iqvia_flagdate =="2024-02-14" & reason =="Other")
 Line3 <- Line3 %>%
   count(marker) %>%
   group_by(marker) 
-Line3$marker[Line3$marker=="1"] <- "No Removed Pre Survey and Day 1 Mail Out (Other/Non Scots)" #1106
+Line3$marker[Line3$marker=="1"] <- "No Removed Pre Survey and Day 1 Mail Out (Other/Non Scots)" 
 
 #Line4 Total No Sent out ####
-#Line4 <- master_list %>%
-#  filter(iqvia_flagdate != "2023-10-19" & iqvia_flagdate !="2023-10-23")
 Line4 <- master_list %>%
-  filter(iqvia_flagdate !="2023-10-19" & iqvia_flagdate  !="2023-10-23")
+  filter(iqvia_flagdate !="2024-02-07" & iqvia_flagdate  !="2024-02-14")
 Line4 <- Line4 %>%
   count(marker) %>%
   group_by(marker) 
-Line4$marker[Line4$marker=="1"] <- "Total No Sent out on day 1 of mail out (23/10/23)" #526758
+Line4$marker[Line4$marker=="1"] <- "Total No Sent out on day 1 of mail out (14/02/24)" 
 
-#Line5 Total Deaths Day 2 (Rest of Initial Mail Out) ####
+#Line5 Total Deaths Day 2 (2nd Mail Out day) ####
 Line5 <- master_list %>%
-  filter(iqvia_flagdate =="2023-10-24" | iqvia_flagdate =="2023-10-25")
+  filter(iqvia_flagdate =="2024-03-06")
 Line5 <- Line5 %>%
   count(marker) %>%
   group_by(marker) 
-Line5$marker[Line5$marker=="1"] <- "Total Exclusions (Rest of Initial Mail Out phase)" #90
+Line5$marker[Line5$marker=="1"] <- "Total Exclusions (Mail out day 2 (06/03/24))" 
 
-#Line6 Total No of Removals Sent to QH (as part of the reminder mail out)####
+#Line6 Total Deaths Day 3 (3rd Mail Out day) ####
 Line6 <- master_list %>%
-  filter((iqvia_flagdate !="2023-10-19" & iqvia_flagdate !="2023-10-23" 
-          & iqvia_flagdate !="2023-10-24" & iqvia_flagdate !="2023-10-25") & iqvia_exclude == 1)
+  filter(iqvia_flagdate =="2024-03-20" )
 Line6 <- Line6 %>%
   count(marker) %>%
   group_by(marker) 
-Line6$marker[Line6$marker=="1"] <- "Total No of Removals Sent to QH (as part of reminder mail out phase)" #530
+Line6$marker[Line6$marker=="1"] <- "Total Exclusions (Mail out day 3 (20/03/24))" 
 
-removals <-bind_rows(Line1,Line2,Line3,Line4,Line5,Line6)
-rm(Line1)
-rm(Line2)
-rm(Line3)
-rm(Line4)
-rm(Line5)
-rm(Line6)
-rm(master_list)
+#Line7 Total No of Removals Sent to QH (as part of the reminder mail out)####
+Line7 <- master_list %>%
+  filter((iqvia_flagdate =="2024-02-07" | iqvia_flagdate =="2024-02-14" 
+          | iqvia_flagdate =="2024-03-06" | iqvia_flagdate =="2024-03-20") & iqvia_exclude == 1)
+Line7 <- Line7 %>%
+  count(marker) %>%
+  group_by(marker) 
+Line7$marker[Line7$marker=="1"] <- "Total No of Removals Sent to QH" 
+
+removals <-bind_rows(Line1,Line2,Line3,Line4,Line5,Line6,Line7)
+rm(Line1,Line2,Line3,Line4,Line5,Line6,Line7,master_list)
 
 colnames(removals)[which(names(removals) == "marker")] <-"Mailout Stage"
+colnames(removals)[which(names(removals) == "n")] <-"Number of forms"
 
 #Pick up reporting template and populate, save outfile as xlsx####
 
-template <- loadWorkbook(paste0("output/technical report/removals_template.xlsx"))
+template <- loadWorkbook(paste0(output_path,"technical_report/removals_template.xlsx"))
 writeData(template, "removals_summary", removals, startCol = 2, startRow = 9)
-saveWorkbook(template, (paste0("output/technical report/2024_02_28_sample_removals_note.xlsx")), overwrite =TRUE)
-
-
-
+saveWorkbook(template, (paste0(output_path,"technical_report/sample_removals_note.xlsx")), overwrite =TRUE)
