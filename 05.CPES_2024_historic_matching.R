@@ -6,9 +6,9 @@
 # 
 # Description of content:  output analyses at all levels of reporting.
 # 
-# Approximate run time: tbd
+# Approximate run time: <1min
 # 
-# Approximate memory usage: tbd
+# Approximate memory usage: 590 MiB
 # 
 # *****************************************
 
@@ -37,23 +37,17 @@ source("00.CPES_2024_functions.R")
 #Geographical output####
 ##Read in 2024 output.rds####
 output <- readRDS(paste0(analysis_output_path,"output.rds"))
+question_lookup <- readRDS(paste0(lookup_path,"question_lookup.rds")) %>% 
+  select(question,response_option,`2018_question`,`2018_option`,comparability_2018,`2015_question`,`2015_option`,comparability_2015)
+output <- output %>% 
+  left_join(question_lookup,by = c("question","response_option","2018_question","2015_question"))
 
 ##2018####
 historic_2018 <- readRDS(paste0(data_path_2018,"output.rds"))
 ls(historic_2018)
 historic_2018 <- historic_2018 %>% 
-  select(question,level,report_area_name,report_area,response_option,response_text_analysis,n_responses,n_includedresponses,wgt_percent,'_low','_upp')%>%
-  rename(question_2018 = question) %>%
-  rename(level_2018 = level) %>%
-  rename(report_area_name_2018 = report_area_name) %>%
-  rename(report_area_2018 = report_area) %>%
-  rename(response_option_2018 = response_option) %>%
-  rename(response_text_analysis_2018 = response_text_analysis) %>%
-  rename(n_includedresponses_2018 = n_includedresponses) %>%
-  rename(n_responses_2018 = n_responses) %>%
-  rename(wgt_percent_2018 = wgt_percent) %>%
-  rename('_low_2018' = '_low') %>%
-  rename( '_upp_2018' = '_upp')
+  select(question,level,report_area_name,report_area,response_option,response_text_analysis,n_includedresponses,n_response,wgt_percent,wgt_percent_low,wgt_percent_upp)%>%
+  rename_with(~paste(., "2018",sep = "_"))
 ls(historic_2018)
 
 ##Update report area codes S08000018, S08000021, S08000023 & S08000027. ####
@@ -66,25 +60,18 @@ historic_2018$report_area_2018[historic_2018$report_area_2018 == "S08000027"] <-
 table(historic_2018$report_area_2018)
 
 ##Join 2018 output onto 2024 output####
+
 output2 <- output %>% 
   left_join(historic_2018,by = c(`2018_question` = "question_2018","level" = "level_2018","report_area"= "report_area_2018",
-                                 response_option = "response_option_2018"),suffix=c("_2024","")) 
+                                 `2018_option` = "response_option_2018"),suffix=c("_2024","")) 
+                    
 
 ##2015####
 historic_2015 <- readRDS(paste0(data_path_2015,"output.rds"))
 ls(historic_2015)
 historic_2015 <- historic_2015 %>% 
-  select(question,level,report_area_name,report_area,response_option,response_text_analysis,n_includedresponses,wgt_percent,'_low','_upp')%>%
-  rename(question_2015 = question) %>%
-  rename(level_2015 = level) %>%
-  rename(report_area_name_2015 = report_area_name) %>%
-  rename(report_area_2015 = report_area) %>%
-  rename(response_option_2015 = response_option) %>%
-  rename(response_text_analysis_2015 = response_text_analysis) %>%
-  rename(n_includedresponses_2015 = n_includedresponses) %>%
-  rename(wgt_percent_2015 = wgt_percent) %>%
-  rename('_low_2015' = '_low') %>%
-  rename( '_upp_2015' = '_upp')
+  select(question,level,report_area_name,report_area,response_option,response_text_analysis,n_includedresponses,n_response,wgt_percent,wgt_percent_low,wgt_percent_upp)%>%
+  rename_with(~paste(., "2015",sep = "_"))
 ls(historic_2015)
 
 ##Update report area codes S08000018, S08000021, S08000023 & S08000027. ####
@@ -99,7 +86,7 @@ table(historic_2015$report_area_2015)
 ##Join 2015 output onto 2024 & 2018 output####
 output3 <- output2 %>% 
   left_join(historic_2015,by = c(`2015_question` = "question_2015","level" = "level_2015","report_area"= "report_area_2015",
-                                 response_option = "response_option_2015"),suffix=c("_2024","")) 
+                                 `2015_option` = "response_option_2015"),suffix=c("_2024","")) 
 
 ls(output3)
 output3 <- output3 %>%
@@ -107,86 +94,66 @@ output3 <- output3 %>%
 ls(output3)
 output3 <- output3 %>%
   select(question,question_text,response_option,response_text_analysis,question_type,level,report_area,report_area_name,
-         n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,`_low`,`_upp`,
-         n_includedresponses_2018,wgt_percent_2018,`_low_2018`,`_upp_2018`,
-         n_includedresponses_2015,wgt_percent_2015,`_low_2015`,`_upp_2015`,)
+         n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,`wgt_percent_low`,`wgt_percent_upp`,
+         n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent_low_2018,wgt_percent_upp_2018,comparability_2018,
+         n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent_low_2015,wgt_percent_upp_2015,comparability_2015)
 
 ##save out####
-saveRDS(output3, paste0(analysis_output_path,"draft_dashboard_output.rds"))
-write.xlsx(output3,paste0(analysis_output_path,"draft_dashboard_output.xlsx"))
+saveRDS(output3, paste0(analysis_output_path,"output_2024.rds"))
+write.xlsx(output3,paste0(analysis_output_path,"output_2024.xlsx"))
 
 rm(historic_2015,historic_2018,output,output2,output3)
 
 #Cancer group output####
-##Read in 2024 tumour output.rds#### (Now to be known as cancer_group)
-cancer_group_output <- readRDS(paste0(analysis_output_path,"tumour_output.rds"))
+##Read in 2024 cancer_group output.rds#### 
+cancer_group_output <- readRDS(paste0(analysis_output_path,"cancer_group_output.rds"))
+ls(cancer_group_output)
+#question_lookup <- readRDS(paste0(lookup_path,"question_lookup.rds")) %>% 
+#  select(question,response_option,`2018_question`,`2018_option`,`2015_question`,`2015_option`)
+cancer_group_output <- cancer_group_output %>% 
+  left_join(question_lookup,by = c("question","response_option","2018_question","2015_question"))
+ls(cancer_group_output)
 
 ##2018####
-cancer_group_historic_2018 <- readRDS(paste0(data_path_2018,"tumour_output.rds"))
-ls(historic_2018)
-cancer_group_historic_2018 <- cancer_group_historic_2018 %>% 
-  select(question,level,report_area_name,report_area,response_option,response_text_analysis,n_responses,n_includedresponses,wgt_percent,'_low','_upp')%>%
-  rename(question_2018 = question) %>%
-  rename(level_2018 = level) %>%
-  rename(report_area_name_2018 = report_area_name) %>%
-  rename(report_area_2018 = report_area) %>%
-  rename(response_option_2018 = response_option) %>%
-  rename(response_text_analysis_2018 = response_text_analysis) %>%
-  rename(n_includedresponses_2018 = n_includedresponses) %>%
-  rename(n_responses_2018 = n_responses) %>%
-  rename(wgt_percent_2018 = wgt_percent) %>%
-  rename('_low_2018' = '_low') %>%
-  rename( '_upp_2018' = '_upp')
+#cancer_group_historic_2018 <- readRDS(paste0(data_path_2018,"cancer_group_output.rds"))
+cancer_group_historic_2018 <- read.xlsx(paste0(data_path_2018,"cancer_group_output.xlsx"))
 ls(cancer_group_historic_2018)
-
-##Update report area codes S08000018, S08000021, S08000023 & S08000027. ####
-#These have changed in between 2018 and 2024.  This applied to both 'level' = 'NHS board of treatment' & 'NHS board of residence'.
-table(cancer_group_cancer_group_historic_2018$report_area_2018)
-cancer_group_historic_2018$report_area_2018[cancer_group_historic_2018$report_area_2018 == "S08000018"] <- "S08000029" #NHS Fife
-cancer_group_historic_2018$report_area_2018[cancer_group_historic_2018$report_area_2018 == "S08000021"] <- "S08000031" #NHS Greater Glasgow & Clyde
-cancer_group_historic_2018$report_area_2018[cancer_group_historic_2018$report_area_2018 == "S08000023"] <- "S08000032" #NHS Lanarkshire
-cancer_group_historic_2018$report_area_2018[cancer_group_historic_2018$report_area_2018 == "S08000027"] <- "S08000030" #NHS Tayside
-table(cancer_group_historic_2018$report_area_2018)
+cancer_group_historic_2018 <- cancer_group_historic_2018 %>% 
+  select(question,level,report_area,response_option,response_text_analysis,n_includedresponses,n_response,wgt_percent,wgt_percent_low,wgt_percent_upp)%>%
+  rename_with(~paste(., "2018",sep = "_"))
+ls(cancer_group_historic_2018)
 
 ##Join 2018 tumour output onto 2024 tumour output####
 cancer_group_output2 <- cancer_group_output %>% 
   left_join(cancer_group_historic_2018,by = c(`2018_question` = "question_2018","level" = "level_2018","report_area"= "report_area_2018",
-                                 response_option = "response_option_2018"),suffix=c("_2024","")) 
+                                              "response_option" = "response_option_2018"),suffix=c("_2024","")) 
+
 
 ##2015####
-cancer_group_historic_2015 <- readRDS(paste0(data_path_2015,"tumour_output.rds"))
+cancer_group_historic_2015 <- readRDS(paste0(data_path_2015,"cancer_group_output.rds"))
 ls(cancer_group_historic_2015)
 cancer_group_historic_2015 <- cancer_group_historic_2015 %>% 
-  select(question,level,report_area_name,report_area,response_option,response_text_analysis,n_includedresponses,wgt_percent,'_low','_upp')%>%
-  rename(question_2015 = question) %>%
-  rename(level_2015 = level) %>%
-  rename(report_area_name_2015 = report_area_name) %>%
-  rename(report_area_2015 = report_area) %>%
-  rename(response_option_2015 = response_option) %>%
-  rename(response_text_analysis_2015 = response_text_analysis) %>%
-  rename(n_includedresponses_2015 = n_includedresponses) %>%
-  rename(wgt_percent_2015 = wgt_percent) %>%
-  rename('_low_2015' = '_low') %>%
-  rename( '_upp_2015' = '_upp')
+  select(question,level,report_area,response_option,response_text_analysis,n_includedresponses,n_response,wgt_percent,wgt_percent_low,wgt_percent_upp)%>%
+  rename_with(~paste(., "2015",sep = "_"))
 ls(cancer_group_historic_2015)
-
-##Update report area codes S08000018, S08000021, S08000023 & S08000027. ####
-#These have changed in between 2015 and 2024.  This applied to both 'level' = 'NHS board of treatment' & 'NHS board of residence'.
-table(cancer_group_historic_2015$report_area_2015)
-cancer_group_historic_2015$report_area_2015[cancer_group_historic_2015$report_area_2015 == "S08000018"] <- "S08000029" #NHS Fife
-cancer_group_historic_2015$report_area_2015[cancer_group_historic_2015$report_area_2015 == "S08000021"] <- "S08000031" #NHS Greater Glasgow & Clyde
-cancer_group_historic_2015$report_area_2015[cancer_group_historic_2015$report_area_2015 == "S08000023"] <- "S08000032" #NHS Lanarkshire
-cancer_group_historic_2015$report_area_2015[cancer_group_historic_2015$report_area_2015 == "S08000027"] <- "S08000030" #NHS Tayside
-table(cancer_group_historic_2015$report_area_2015)
 
 ##Join 2015 cancer_group onto 2024 & 2018 cancer_group output####
 cancer_group_output3 <- cancer_group_output2 %>% 
   left_join(cancer_group_historic_2015,by = c(`2015_question` = "question_2015","level" = "level_2015","report_area"= "report_area_2015",
-                                 response_option = "response_option_2015"),suffix=c("_2024","")) 
+                                              `2015_option` = "response_option_2015"),suffix=c("_2024","")) 
 
+ls(cancer_group_output3)
+cancer_group_output3 <- cancer_group_output3 %>%
+  select(-`2018_question`,-`2015_question`,-response_text_analysis_2018, -response_text_analysis_2015)
+ls(cancer_group_output3)
+cancer_group_output3 <- cancer_group_output3 %>%
+  select(question,question_text,response_option,response_text_analysis,question_type,level,report_area,
+         n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,wgt_percent_low,wgt_percent_upp,
+         n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent_low_2018,wgt_percent_upp_2018,comparability_2018,
+         n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent_low_2015,wgt_percent_upp_2015,comparability_2015) 
+  
 ##save out####
-saveRDS(cancer_group_output3, paste0(analysis_output_path,"draft_dashboard_output.rds"))
-write.xlsx(cancer_group_output3,paste0(analysis_output_path,"draft_dashboard_output.xlsx"))
+saveRDS(cancer_group_output3, paste0(analysis_output_path,"cancer_group_output_2024.rds"))
+write.xlsx(cancer_group_output3,paste0(analysis_output_path,"cancer_group_output_2024.xlsx"))
 
-#Temporary - eventually remove
 rm(cancer_group_historic_2015,cancer_group_historic_2018,cancer_group_output,cancer_group_output2,cancer_group_output3)
