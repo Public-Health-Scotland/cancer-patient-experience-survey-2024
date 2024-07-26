@@ -14,11 +14,12 @@
 
 #Inputs: 
 #analysis_output_path,"output.rds"
+#lookup_path,"question_lookup.rds"
 #data_path_2018,"output.rds"
 #data_path_2015,"output.rds"
-##analysis_output_path,"tumour_output.rds"
-#data_path_2018,"tumour_output.rds"
-#data_path_2015,"tumour_output.rds"
+##analysis_output_path,"cancer_group_output.rds"
+#data_path_2018,"cancer_group_output.rds"
+#data_path_2015,"cancer_group_output.rds"
 
 #Outputs: 
 #analysis_output_path,"output_2024.xlsx"
@@ -37,6 +38,7 @@ source("00.CPES_2024_functions.R")
 #Geographical output####
 ##Read in 2024 output.rds####
 output <- readRDS(paste0(analysis_output_path,"output.rds"))
+output$response_option[output$question == "q55" & output$response_option == 7] <- 10
 question_lookup <- readRDS(paste0(lookup_path,"question_lookup.rds")) %>% 
   select(question,response_option,`2018_question`,`2018_option`,comparability_2018,`2015_question`,`2015_option`,comparability_2015)
 output <- output %>% 
@@ -107,12 +109,9 @@ rm(historic_2015,historic_2018,output,output2,output3)
 #Cancer group output####
 ##Read in 2024 cancer_group output.rds#### 
 cancer_group_output <- readRDS(paste0(analysis_output_path,"cancer_group_output.rds"))
-ls(cancer_group_output)
-#question_lookup <- readRDS(paste0(lookup_path,"question_lookup.rds")) %>% 
-#  select(question,response_option,`2018_question`,`2018_option`,`2015_question`,`2015_option`)
+cancer_group_output$response_option[cancer_group_output$question == "q55" & cancer_group_output$response_option == 7] <- 10
 cancer_group_output <- cancer_group_output %>% 
   left_join(question_lookup,by = c("question","response_option","2018_question","2015_question"))
-ls(cancer_group_output)
 
 ##2018####
 #cancer_group_historic_2018 <- readRDS(paste0(data_path_2018,"cancer_group_output.rds"))
@@ -127,7 +126,6 @@ ls(cancer_group_historic_2018)
 cancer_group_output2 <- cancer_group_output %>% 
   left_join(cancer_group_historic_2018,by = c(`2018_question` = "question_2018","level" = "level_2018","report_area"= "report_area_2018",
                                               "response_option" = "response_option_2018"),suffix=c("_2024","")) 
-
 
 ##2015####
 cancer_group_historic_2015 <- readRDS(paste0(data_path_2015,"cancer_group_output.rds"))
