@@ -14,18 +14,13 @@
 
 #Inputs: 
 #analysis_output_path,"output_2024.rds"
-#analysis_output_path,"tumour_output_2024.rds"
-#lookup_path,"question_lookup.rds"
+#analysis_output_path,"cancer_group_output_2024.rds"
 
 #Outputs: 
 #analysis_output_path,"output_2024_dashboard.xlsx"
 #analysis_output_path,"output_2024_dashboard.rds"
-#analysis_output_path,"tumour_output_2024_dashboard.xlsx"
-#analysis_output_path,"tumour_output_2024_dashboard.rds"
-
-#Join historical results for 2018 and 2015 on to the 2024 results####
-##Read in historic data for 2018 and 2015 and then match onto the 2024 results files ("output" & "tumour_output")
-##Need to do separately for output and tumour output equivalent files.
+#analysis_output_path,"cancer_group_output_2024_dashboard.xlsx"
+#analysis_output_path,"cancer_group_output_2024_dashboard.rds"
 
 source("00.CPES_2024_set_up_packages.R")
 source("00.CPES_2024_set_up_file_paths.R")
