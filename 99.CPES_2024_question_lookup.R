@@ -43,8 +43,8 @@ table(question_mapping$question_type,useNA = c("always"))
 
 #create question lookup
 question_lookup <- question_mapping %>%
-  select(question,question_type,question_text,response_option,response_text,topic,cancercentreallocation,weighted,pnn,
-         `2018_question`,`2018_option`,`2015_question`,`2015_option`) %>%
+  select(question,question_type,question_text,response_option,response_text,response_text_r_shiny,topic,cancercentreallocation,weighted,pnn,
+         `2018_question`,`2018_option`,comparability_2018,`2015_question`,`2015_option`,comparability_2015) %>%
   rename(response_value = pnn) %>%
   mutate(response_text_analysis = coalesce(response_value,response_text)) # for 04.CPES_2024_create_aggregate_results.R
 
