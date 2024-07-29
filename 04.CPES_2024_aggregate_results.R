@@ -84,7 +84,7 @@ expand_table <- function(df) {
 output <- bind_rows(nat,nett,netr,hbt,hbr,cc)
 
 #add confidence intervals
-output <- add_CIs(output,p = wgt_percent,n = n_includedresponses) %>% select(-c(t,se))
+output <- add_CIs_proportion(output,p = wgt_percent,n = n_includedresponses) %>% select(-c(t,se))
 
 #read in lookups
 hb_names <- read.csv(paste0(lookup_path,"SMRA.ANALYSIS.HEALTH_BOARD.csv"))%>%
@@ -146,7 +146,7 @@ output <- master_question_table %>%
 cancer_group_output <- bind_rows(nat,cg)
 
 #add confidence intervals
-cancer_group_output <- add_CIs(cancer_group_output,p = wgt_percent,n = n_includedresponses) %>% select(-c(t,se))
+cancer_group_output <- add_CIs_proportion(cancer_group_output,p = wgt_percent,n = n_includedresponses) %>% select(-c(t,se))
 
 #create master question with one row for every question and response option,for every report area and level. 
 master_question_table <- expand_table(cancer_group_output) 
@@ -198,15 +198,15 @@ aggregate_responses_average <- function(report_areas,wt) {
     filter(question == "q55") %>% 
     mutate(question = "q55_ave",
            response_option = as.numeric(response_option)) %>% 
+    as_survey_design(weights = {{wt}}) %>% 
     group_by("report_area" = {{report_areas}},question) %>%
-    summarise(wgt_response = sum(response_option*{{wt}},na.rm = TRUE),
+    summarise('wgt_mean' = survey_mean(response_option,na.rm = TRUE,vartype = c("ci"),level = 0.95,proportion = FALSE,deff = FALSE),
               n_response = n(),
-              n_wgt_response = sum({{wt}},na.rm = TRUE),
-              mean = mean(response_option,na.rm = TRUE),
-              n_includedresponses = n()) %>% 
-    ungroup() %>% 
-    mutate(wgt_mean = wgt_response / n_wgt_response) %>% 
-    select(-wgt_response) }
+              n_wgt_response = sum({{wt}}),
+              mean = mean(response_option)) %>% 
+    group_by(report_area,question) %>%
+    mutate(n_includedresponses = sum(n_response),
+           n_wgt_includedresponses = sum(n_wgt_response))}
 
 #run at each level####
 nat_q55  <- aggregate_responses_average(scotland,nat_wt) %>%  mutate(level = "Scotland")

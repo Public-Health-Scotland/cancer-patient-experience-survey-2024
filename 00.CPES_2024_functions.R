@@ -63,8 +63,7 @@ seven_age_bands <- function(age) {
 #se(^p) =√(^p(1−^p)/(n-1))
 #CI = estimate±t∗df×SE
 
-
-add_CIs <- function(df,p,n) {
+add_CIs_proportion <- function(df,p,n) {
   df <- df %>% 
     mutate(se = sqrt((({{p}}*(1-{{p}}))/({{n}} - 1))),
            t = qt(0.95,df={{n}}-1)) %>% 
