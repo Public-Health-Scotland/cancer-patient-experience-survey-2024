@@ -58,6 +58,22 @@ seven_age_bands <- function(age) {
                               age >=75 & age <= 150 ~ "75 plus",
                               TRUE ~ "Dummy")
   return(seven_age_band)}
+#calculate Confidence Intervals
+#https://tidy-survey-r.github.io/tidy-survey-book/c10-sample-designs-replicate-weights.html#common-sampling-designs
+#se(^p) =√(^p(1−^p)/(n-1))
+#CI = estimate±t∗df×SE
+
+
+add_CIs <- function(df,p,n) {
+  df <- df %>% 
+    mutate(se = sqrt((({{p}}*(1-{{p}}))/({{n}} - 1))),
+           t = qt(0.95,df={{n}}-1)) %>% 
+    mutate(wgt_percent_low = {{p}} - t*se,
+           wgt_percent_upp = {{p}} + t*se) %>% 
+    mutate(wgt_percent_low = if_else(wgt_percent_low < 0,0,wgt_percent_low),
+           wgt_percent_upp = if_else(wgt_percent_upp > 1,1,wgt_percent_upp),
+           wgt_percent_low = if_else(wgt_percent == 1,1,wgt_percent_low),
+           wgt_percent_upp = if_else(wgt_percent == 1,1,wgt_percent_upp))}
 
 #define census_date
 census_date = as.Date("2024-01-18")
