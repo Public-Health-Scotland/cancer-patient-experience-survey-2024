@@ -145,7 +145,7 @@ output3 <- output3 %>%
   select(-percent,-`2018_question`,-`2015_question`,-report_area_name_2018,-response_text_analysis_2018, -report_area_name_2015,-response_text_analysis_2015)
 ls(output3)
 output3 <- output3 %>%
-  select(question,question_text,response_option,response_text_analysis,response_text_dashboard,question_type,level,report_area,report_area_name,
+  select(question,question_text,response_option,response_text_analysis,response_text_dashboard,topic,question_type,level,report_area,report_area_name,
          n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,`wgt_percent_low`,`wgt_percent_upp`,
          n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent_low_2018,wgt_percent_upp_2018,comparability_2018,
          n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent_low_2015,wgt_percent_upp_2015,comparability_2015)
@@ -205,7 +205,7 @@ cancer_group_output3 <- cancer_group_output3 %>%
   select(-`2018_question`,-`2015_question`,-response_text_analysis_2018, -response_text_analysis_2015)
 ls(cancer_group_output3)
 cancer_group_output3 <- cancer_group_output3 %>%
-  select(question,question_text,response_option,response_text_analysis,response_text_dashboard,question_type,level,report_area,
+  select(question,question_text,response_option,response_text_analysis,response_text_dashboard,topic,question_type,level,report_area,
          n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,wgt_percent_low,wgt_percent_upp,
          n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent_low_2018,wgt_percent_upp_2018,comparability_2018,
          n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent_low_2015,wgt_percent_upp_2015,comparability_2015) 
