@@ -63,33 +63,26 @@ geography$wgt_percent_low_2015 = round(geography$wgt_percent_low_2015,2)
 geography$wgt_percent_upp_2015 = round(geography$wgt_percent_upp_2015,2)
 
 #remove areas that are not published - less than 50 responses OVERALL. 
-geography$remove <- 0
-geography$remove <- ifelse(geography$n_response < 50,1,0)
-geography$wgt_percent[geography$remove == 1] <- NA
-geography$wgt_percent_low[geography$remove == 1] <- NA
-geography$wgt_percent_upp[geography$remove == 1] <- NA
-geography$n_includedresponses_2018[geography$suppress == 1] <- NA
-geography$wgt_percent_2018[geography$remove == 1] <- NA
-geography$wgt_percent_low_2018[geography$remove == 1] <- NA
-geography$wgt_percent_upp_2018[geography$remove == 1] <- NA
-geography$n_includedresponses_2015[geography$suppress == 1] <- NA
-geography$wgt_percent_2015[geography$remove == 1] <- NA
-geography$wgt_percent_low_2015[geography$remove == 1] <- NA
-geography$wgt_percent_upp_2015[geography$remove == 1] <- NA
-#also remove N_IncludedResponses?
-geography$remove <- NULL
+#Boards of Treatment and Residence: NHS Orkney, NHS Shetland and NHS Western Isles
+geography <-geography %>%
+  filter(report_area_name != "NHS Orkney" & report_area_name != "NHS Shetland" & report_area_name != "NHS Western Isles")
 
 #Suppress questions with responses less than 20.
-geography$suppress <- 0
+geography$suppress_2024 <- 0
 geography$suppress <- ifelse(geography$n_includedresponses < 20,1,0)
+geography$n_wgt_includedresponses[geography$suppress == 1] <- NA
+geography$n_response[geography$suppress == 1] <- NA
+geography$n_wgt_response[geography$suppress == 1] <- NA
 geography$wgt_percent[geography$suppress == 1] <- NA
 geography$wgt_percent_low[geography$suppress == 1] <- NA
 geography$wgt_percent_upp[geography$suppress == 1] <- NA
 geography$n_includedresponses_2018[geography$suppress == 1] <- NA
+geography$n_response_2018[geography$suppress == 1] <- NA
 geography$wgt_percent_2018[geography$suppress == 1] <- NA
 geography$wgt_percent_low_2018[geography$suppress == 1] <- NA
 geography$wgt_percent_upp_2018[geography$suppress == 1] <- NA
 geography$n_includedresponses_2015[geography$suppress == 1] <- NA
+geography$n_response_2015[geography$suppress == 1] <- NA
 geography$wgt_percent_2015[geography$suppress == 1] <- NA
 geography$wgt_percent_low_2015[geography$suppress == 1] <- NA
 geography$wgt_percent_upp_2015[geography$suppress == 1] <- NA
@@ -97,10 +90,10 @@ geography$wgt_percent_upp_2015[geography$suppress == 1] <- NA
 geography$suppress <- NULL
 
 geography <- geography %>%
-  select(question,question_text,response_option,response_text_analysis,question_type,level,report_area,report_area_name,
-         n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,`wgt_percent_low`,`wgt_percent_upp`,
-         n_response_2018,wgt_percent_2018,wgt_percent,wgt_percent_low_2018,wgt_percent_upp_2018,
-         n_response_2015,wgt_percent_2015,wgt_percent,wgt_percent_low_2015,wgt_percent_upp_2015)
+  select(question,question_text,response_option,response_text_analysis,response_text_dashboard,topic,question_type,level,report_area,report_area_name,
+         n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,wgt_percent_low,wgt_percent_upp,
+         n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent,wgt_percent_low_2018,wgt_percent_upp_2018,
+         n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent,wgt_percent_low_2015,wgt_percent_upp_2015)
 
 ##save out####
 saveRDS(geography, paste0(analysis_output_path,"dashboard_output_2024.rds"))
@@ -142,42 +135,39 @@ cancer_group_output$wgt_percent_2015 = round(cancer_group_output$wgt_percent_201
 cancer_group_output$wgt_percent_low_2015 = round(cancer_group_output$wgt_percent_low_2015,2)
 cancer_group_output$wgt_percent_upp_2015 = round(cancer_group_output$wgt_percent_upp_2015,2)
 
-#remove areas that are not published - less than 50 responses OVERALL. 
-cancer_group_output$remove <- 0
-cancer_group_output$remove <- ifelse(cancer_group_output$n_response < 50,1,0)
-cancer_group_output$wgt_percent[cancer_group_output$remove == 1] <- NA
-cancer_group_output$`wgt_percent_low`[cancer_group_output$remove == 1] <- NA
-cancer_group_output$`wgt_percent_upp`[cancer_group_output$remove == 1] <- NA
-cancer_group_output$wgt_percent_2018[cancer_group_output$remove == 1] <- NA
-cancer_group_output$`wgt_percent_low_2018`[cancer_group_output$remove == 1] <- NA
-cancer_group_output$`wgt_percent_upp_2018`[cancer_group_output$remove == 1] <- NA
-cancer_group_output$wgt_percent_2015[cancer_group_output$remove == 1] <- NA
-cancer_group_output$`wgt_percent_low_2015`[cancer_group_output$remove == 1] <- NA
-cancer_group_output$`wgt_percent_upp_2015`[cancer_group_output$remove == 1] <- NA
-#also remove N_IncludedResponses? NO
-cancer_group_output$remove <- NULL
+#remove cancer groups that are not published - less than 50 responses OVERALL - NONE
 
 #Suppress questions with responses less than 20.
 cancer_group_output$suppress <- 0
 cancer_group_output$suppress <- ifelse(cancer_group_output$n_includedresponses < 20,1,0)
+cancer_group_output$n_wgt_includedresponses[cancer_group_output$suppress == 1] <- NA
+cancer_group_output$n_response[cancer_group_output$suppress == 1] <- NA
+cancer_group_output$n_wgt_response[cancer_group_output$suppress == 1] <- NA
 cancer_group_output$wgt_percent[cancer_group_output$suppress == 1] <- NA
-cancer_group_output$`wgt_percent_low`[cancer_group_output$suppress == 1] <- NA
-cancer_group_output$`wgt_percent_upp`[cancer_group_output$suppress == 1] <- NA
+cancer_group_output$wgt_percent_low[cancer_group_output$suppress == 1] <- NA
+cancer_group_output$wgt_percent_upp[cancer_group_output$suppress == 1] <- NA
+cancer_group_output$n_includedresponses_2018[cancer_group_output$suppress == 1] <- NA
+cancer_group_output$n_response_2018[cancer_group_output$suppress == 1] <- NA
 cancer_group_output$wgt_percent_2018[cancer_group_output$suppress == 1] <- NA
-cancer_group_output$`wgt_percent_low_2018`[cancer_group_output$suppress == 1] <- NA
-cancer_group_output$`wgt_percent_upp_2018`[cancer_group_output$suppress == 1] <- NA
+cancer_group_output$wgt_percent_low_2018[cancer_group_output$suppress == 1] <- NA
+cancer_group_output$wgt_percent_upp_2018[cancer_group_output$suppress == 1] <- NA
+cancer_group_output$n_includedresponses_2015[cancer_group_output$suppress == 1] <- NA
+cancer_group_output$n_response_2015[cancer_group_output$suppress == 1] <- NA
 cancer_group_output$wgt_percent_2015[cancer_group_output$suppress == 1] <- NA
-cancer_group_output$`wgt_percent_low_2015`[cancer_group_output$suppress == 1] <- NA
-cancer_group_output$`v_upp_2015`[cancer_group_output$suppress == 1] <- NA
+cancer_group_output$wgt_percent_low_2015[cancer_group_output$suppress == 1] <- NA
+cancer_group_output$wgt_percent_upp_2015[cancer_group_output$suppress == 1] <- NA
 #also suppress N_IncludedResponses? NO
 cancer_group_output$suppress <- NULL
 
 cancer_group_output <- cancer_group_output %>%
-  select(question,question_text,response_option,response_text_analysis,question_type,level,report_area,
-         n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,`wgt_percent_low`,`wgt_percent_upp`,
-         n_response_2018,wgt_percent_2018,wgt_percent_low_2018,wgt_percent_upp_2018,
-         n_response_2015,wgt_percent_2015,wgt_percent_low_2015,wgt_percent_upp_2015)
+  select(question,question_text,response_option,response_text_analysis,response_text_dashboard,topic,question_type,level,report_area,
+         n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,wgt_percent_low,wgt_percent_upp,
+         n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent_low_2018,wgt_percent_upp_2018,
+         n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent_low_2015,wgt_percent_upp_2015)
 
 ##save out####
 saveRDS(cancer_group_output, paste0(analysis_output_path,"cancer_group_dashboard_output_2024.rds"))
 write.xlsx(cancer_group_output,paste0(analysis_output_path,"cancer_group_dashboard_output_2024.xlsx"))
+
+ls(geography)
+ls(cancer_group_output)
