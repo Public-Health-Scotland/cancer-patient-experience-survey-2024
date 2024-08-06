@@ -93,6 +93,13 @@ output <- output %>%
 output <- output %>%
   mutate(`2018_option` = if_else(question == "q61","-",`2018_option`))
 
+#Where response_text_dashboard = NA, this should equal response_text_analysis
+output$check = 0
+output <- output %>%
+  mutate(check = if_else(is.na(response_text_dashboard),1,check))
+table(output$check)
+output <- output %>%
+  mutate(response_text_dashboard = if_else(is.na(response_text_dashboard),response_text_analysis,response_text_dashboard))
 
 ##2018####
 historic_2018 <- readRDS(paste0(data_path_2018,"output.rds"))
@@ -150,11 +157,15 @@ output3 <- output3 %>%
          n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent_low_2018,wgt_percent_upp_2018,comparability_2018,
          n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent_low_2015,wgt_percent_upp_2015,comparability_2015)
 
+#check if the same as before
+hist.file <- readRDS(paste0(analysis_output_path,"output_2024.rds")) 
+all.equal(hist.file,output3)  
+
 ##save out####
 saveRDS(output3, paste0(analysis_output_path,"output_2024.rds"))
 write.xlsx(output3,paste0(analysis_output_path,"output_2024.xlsx"))
 
-rm(historic_2015,historic_2018,output,output2,output3)
+rm(historic_2015,historic_2018,output,output2,output3,hist.file)
 
 #Cancer group output####
 ##Read in 2024 cancer_group output.rds#### 
@@ -172,6 +183,14 @@ ls(cancer_group_output)
 #Amend the 2018 response_option to "-" for q61 to not match on the 2018 "At least one disability / impairment / condition" measure which is not in 2024
 cancer_group_output <- cancer_group_output %>%
   mutate(`2018_option` = if_else(question == "q61","-",`2018_option`))
+
+#Where response_text_dashboard = NA, this should equal response_text_analysis
+cancer_group_output$check = 0
+cancer_group_output <- cancer_group_output %>%
+  mutate(check = if_else(is.na(response_text_dashboard),1,check))
+table(cancer_group_output$check)
+cancer_group_output <- cancer_group_output %>%
+  mutate(response_text_dashboard = if_else(is.na(response_text_dashboard),response_text_analysis,response_text_dashboard))
 
 ##2018####
 cancer_group_historic_2018 <- readRDS(paste0(data_path_2018,"cancer_group_output.rds"))
@@ -209,9 +228,13 @@ cancer_group_output3 <- cancer_group_output3 %>%
          n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,wgt_percent_low,wgt_percent_upp,
          n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent_low_2018,wgt_percent_upp_2018,comparability_2018,
          n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent_low_2015,wgt_percent_upp_2015,comparability_2015) 
+
+#check if the same as before
+hist.file <- readRDS(paste0(analysis_output_path,"cancer_group_output_2024.rds")) 
+all.equal(hist.file,cancer_group_output3)  
   
 ##save out####
 saveRDS(cancer_group_output3, paste0(analysis_output_path,"cancer_group_output_2024.rds"))
 write.xlsx(cancer_group_output3,paste0(analysis_output_path,"cancer_group_output_2024.xlsx"))
 
-rm(cancer_group_historic_2015,cancer_group_historic_2018,cancer_group_output,cancer_group_output2,cancer_group_output3)
+rm(cancer_group_historic_2015,cancer_group_historic_2018,cancer_group_output,cancer_group_output2,cancer_group_output3,hist.file)
