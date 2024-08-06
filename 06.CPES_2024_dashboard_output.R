@@ -95,6 +95,11 @@ geography <- geography %>%
          n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent,wgt_percent_low_2018,wgt_percent_upp_2018,
          n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent,wgt_percent_low_2015,wgt_percent_upp_2015)
 
+#check if the same as before
+hist.file <- readRDS(paste0(analysis_output_path,"dashboard_output_2024.rds")) 
+all.equal(hist.file,geography)  
+rm(hist.file)
+
 ##save out####
 saveRDS(geography, paste0(analysis_output_path,"dashboard_output_2024.rds"))
 write.xlsx(geography,paste0(analysis_output_path,"dashboard_output_2024.xlsx"))
@@ -164,6 +169,11 @@ cancer_group_output <- cancer_group_output %>%
          n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,wgt_percent_low,wgt_percent_upp,
          n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent_low_2018,wgt_percent_upp_2018,
          n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent_low_2015,wgt_percent_upp_2015)
+
+#check if the same as before
+hist.file <- readRDS(paste0(analysis_output_path,"cancer_group_dashboard_output_2024.rds")) 
+all.equal(hist.file,cancer_group_output) 
+rm(hist.file)
 
 ##save out####
 saveRDS(cancer_group_output, paste0(analysis_output_path,"cancer_group_dashboard_output_2024.rds"))
