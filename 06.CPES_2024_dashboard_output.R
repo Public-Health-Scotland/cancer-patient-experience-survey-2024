@@ -52,15 +52,15 @@ geography$remove_2015 <- NULL
 geography$comparability_2015 <- NULL
 
 #Rounding to 2 decimal places 
-geography$wgt_percent = round(geography$wgt_percent,2)
-geography$wgt_percent_low = round(geography$wgt_percent_low,2)
-geography$wgt_percent_upp = round(geography$wgt_percent_upp,2)
-geography$wgt_percent_2018 = round(geography$wgt_percent_2018,2)
-geography$wgt_percent_low_2018 = round(geography$wgt_percent_low_2018,2)
-geography$wgt_percent_upp_2018 = round(geography$wgt_percent_upp_2018,2)
-geography$wgt_percent_2015 = round(geography$wgt_percent_2015,2)
-geography$wgt_percent_low_2015 = round(geography$wgt_percent_low_2015,2)
-geography$wgt_percent_upp_2015 = round(geography$wgt_percent_upp_2015,2)
+geography$wgt_percent = round(geography$wgt_percent,4)
+geography$wgt_percent_low = round(geography$wgt_percent_low,4)
+geography$wgt_percent_upp = round(geography$wgt_percent_upp,4)
+geography$wgt_percent_2018 = round(geography$wgt_percent_2018,4)
+geography$wgt_percent_low_2018 = round(geography$wgt_percent_low_2018,4)
+geography$wgt_percent_upp_2018 = round(geography$wgt_percent_upp_2018,4)
+geography$wgt_percent_2015 = round(geography$wgt_percent_2015,4)
+geography$wgt_percent_low_2015 = round(geography$wgt_percent_low_2015,4)
+geography$wgt_percent_upp_2015 = round(geography$wgt_percent_upp_2015,4)
 
 #remove areas that are not published - less than 50 responses OVERALL. 
 #Boards of Treatment and Residence: NHS Orkney, NHS Shetland and NHS Western Isles
@@ -125,15 +125,15 @@ cancer_group_output$remove_2015 <- NULL
 cancer_group_output$comparability_2015 <- NULL
 
 #Rounding to 2 decimal places 
-cancer_group_output$wgt_percent = round(cancer_group_output$wgt_percent,2)
-cancer_group_output$wgt_percent_low = round(cancer_group_output$wgt_percent_low,2)
-cancer_group_output$wgt_percent_upp = round(cancer_group_output$wgt_percent_upp,2)
-cancer_group_output$wgt_percent_2018 = round(cancer_group_output$wgt_percent_2018,2)
-cancer_group_output$wgt_percent_low_2018 = round(cancer_group_output$wgt_percent_low_2018,2)
-cancer_group_output$wgt_percent_upp_2018 = round(cancer_group_output$wgt_percent_upp_2018,2)
-cancer_group_output$wgt_percent_2015 = round(cancer_group_output$wgt_percent_2015,2)
-cancer_group_output$wgt_percent_low_2015 = round(cancer_group_output$wgt_percent_low_2015,2)
-cancer_group_output$wgt_percent_upp_2015 = round(cancer_group_output$wgt_percent_upp_2015,2)
+cancer_group_output$wgt_percent = round(cancer_group_output$wgt_percent,4)
+cancer_group_output$wgt_percent_low = round(cancer_group_output$wgt_percent_low,4)
+cancer_group_output$wgt_percent_upp = round(cancer_group_output$wgt_percent_upp,4)
+cancer_group_output$wgt_percent_2018 = round(cancer_group_output$wgt_percent_2018,4)
+cancer_group_output$wgt_percent_low_2018 = round(cancer_group_output$wgt_percent_low_2018,4)
+cancer_group_output$wgt_percent_upp_2018 = round(cancer_group_output$wgt_percent_upp_2018,4)
+cancer_group_output$wgt_percent_2015 = round(cancer_group_output$wgt_percent_2015,4)
+cancer_group_output$wgt_percent_low_2015 = round(cancer_group_output$wgt_percent_low_2015,4)
+cancer_group_output$wgt_percent_upp_2015 = round(cancer_group_output$wgt_percent_upp_2015,4)
 
 #remove cancer groups that are not published - less than 50 responses OVERALL - NONE
 
