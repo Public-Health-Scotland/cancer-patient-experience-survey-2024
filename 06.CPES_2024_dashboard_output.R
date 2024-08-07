@@ -62,6 +62,10 @@ geography$wgt_percent_2015 = round(geography$wgt_percent_2015,4)
 geography$wgt_percent_low_2015 = round(geography$wgt_percent_low_2015,4)
 geography$wgt_percent_upp_2015 = round(geography$wgt_percent_upp_2015,4)
 
+#remove areas that are not published - "No Network" (Network of treatment) and "Not allocated" (Cancer centre) as these are not reported in the dashboard.
+geography <- geography %>%
+  filter(report_area_name != "No network" & report_area_name != "Not allocated")
+
 #remove areas that are not published - less than 50 responses OVERALL. 
 #Boards of Treatment and Residence: NHS Orkney, NHS Shetland and NHS Western Isles
 geography <-geography %>%
