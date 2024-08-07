@@ -52,15 +52,15 @@ geography$remove_2015 <- NULL
 geography$comparability_2015 <- NULL
 
 #Rounding to 2 decimal places 
-geography$wgt_percent = round(geography$wgt_percent,2)
-geography$wgt_percent_low = round(geography$wgt_percent_low,2)
-geography$wgt_percent_upp = round(geography$wgt_percent_upp,2)
-geography$wgt_percent_2018 = round(geography$wgt_percent_2018,2)
-geography$wgt_percent_low_2018 = round(geography$wgt_percent_low_2018,2)
-geography$wgt_percent_upp_2018 = round(geography$wgt_percent_upp_2018,2)
-geography$wgt_percent_2015 = round(geography$wgt_percent_2015,2)
-geography$wgt_percent_low_2015 = round(geography$wgt_percent_low_2015,2)
-geography$wgt_percent_upp_2015 = round(geography$wgt_percent_upp_2015,2)
+geography$wgt_percent = round(geography$wgt_percent,4)
+geography$wgt_percent_low = round(geography$wgt_percent_low,4)
+geography$wgt_percent_upp = round(geography$wgt_percent_upp,4)
+geography$wgt_percent_2018 = round(geography$wgt_percent_2018,4)
+geography$wgt_percent_low_2018 = round(geography$wgt_percent_low_2018,4)
+geography$wgt_percent_upp_2018 = round(geography$wgt_percent_upp_2018,4)
+geography$wgt_percent_2015 = round(geography$wgt_percent_2015,4)
+geography$wgt_percent_low_2015 = round(geography$wgt_percent_low_2015,4)
+geography$wgt_percent_upp_2015 = round(geography$wgt_percent_upp_2015,4)
 
 #remove areas that are not published - less than 50 responses OVERALL. 
 #Boards of Treatment and Residence: NHS Orkney, NHS Shetland and NHS Western Isles
@@ -95,6 +95,11 @@ geography <- geography %>%
          n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent,wgt_percent_low_2018,wgt_percent_upp_2018,
          n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent,wgt_percent_low_2015,wgt_percent_upp_2015)
 
+#check if the same as before
+hist.file <- readRDS(paste0(analysis_output_path,"dashboard_output_2024.rds")) 
+all.equal(hist.file,geography)  
+rm(hist.file)
+
 ##save out####
 saveRDS(geography, paste0(analysis_output_path,"dashboard_output_2024.rds"))
 write.xlsx(geography,paste0(analysis_output_path,"dashboard_output_2024.xlsx"))
@@ -125,15 +130,15 @@ cancer_group_output$remove_2015 <- NULL
 cancer_group_output$comparability_2015 <- NULL
 
 #Rounding to 2 decimal places 
-cancer_group_output$wgt_percent = round(cancer_group_output$wgt_percent,2)
-cancer_group_output$wgt_percent_low = round(cancer_group_output$wgt_percent_low,2)
-cancer_group_output$wgt_percent_upp = round(cancer_group_output$wgt_percent_upp,2)
-cancer_group_output$wgt_percent_2018 = round(cancer_group_output$wgt_percent_2018,2)
-cancer_group_output$wgt_percent_low_2018 = round(cancer_group_output$wgt_percent_low_2018,2)
-cancer_group_output$wgt_percent_upp_2018 = round(cancer_group_output$wgt_percent_upp_2018,2)
-cancer_group_output$wgt_percent_2015 = round(cancer_group_output$wgt_percent_2015,2)
-cancer_group_output$wgt_percent_low_2015 = round(cancer_group_output$wgt_percent_low_2015,2)
-cancer_group_output$wgt_percent_upp_2015 = round(cancer_group_output$wgt_percent_upp_2015,2)
+cancer_group_output$wgt_percent = round(cancer_group_output$wgt_percent,4)
+cancer_group_output$wgt_percent_low = round(cancer_group_output$wgt_percent_low,4)
+cancer_group_output$wgt_percent_upp = round(cancer_group_output$wgt_percent_upp,4)
+cancer_group_output$wgt_percent_2018 = round(cancer_group_output$wgt_percent_2018,4)
+cancer_group_output$wgt_percent_low_2018 = round(cancer_group_output$wgt_percent_low_2018,4)
+cancer_group_output$wgt_percent_upp_2018 = round(cancer_group_output$wgt_percent_upp_2018,4)
+cancer_group_output$wgt_percent_2015 = round(cancer_group_output$wgt_percent_2015,4)
+cancer_group_output$wgt_percent_low_2015 = round(cancer_group_output$wgt_percent_low_2015,4)
+cancer_group_output$wgt_percent_upp_2015 = round(cancer_group_output$wgt_percent_upp_2015,4)
 
 #remove cancer groups that are not published - less than 50 responses OVERALL - NONE
 
@@ -164,6 +169,11 @@ cancer_group_output <- cancer_group_output %>%
          n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,wgt_percent_low,wgt_percent_upp,
          n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent_low_2018,wgt_percent_upp_2018,
          n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent_low_2015,wgt_percent_upp_2015)
+
+#check if the same as before
+hist.file <- readRDS(paste0(analysis_output_path,"cancer_group_dashboard_output_2024.rds")) 
+all.equal(hist.file,cancer_group_output) 
+rm(hist.file)
 
 ##save out####
 saveRDS(cancer_group_output, paste0(analysis_output_path,"cancer_group_dashboard_output_2024.rds"))
