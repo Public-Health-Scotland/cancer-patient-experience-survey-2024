@@ -62,6 +62,14 @@ geography$wgt_percent_2015 = round(geography$wgt_percent_2015,4)
 geography$wgt_percent_low_2015 = round(geography$wgt_percent_low_2015,4)
 geography$wgt_percent_upp_2015 = round(geography$wgt_percent_upp_2015,4)
 
+#remove questionnaire chapter "About You" from Dashboard output - this chapter will be covered in the Technical Report.
+geography <- geography %>%
+  filter(topic != "About You")
+
+#remove the results of the "Allocation" type questions (q06, q20 & q27) from Dashboard output.
+geography <- geography %>%
+  filter(question_type != "Allocation")
+
 #remove areas that are not published - "No Network" (Network of treatment) and "Not allocated" (Cancer centre) as these are not reported in the dashboard.
 geography <- geography %>%
   filter(report_area_name != "No network" & report_area_name != "Not allocated")
@@ -143,6 +151,14 @@ cancer_group_output$wgt_percent_upp_2018 = round(cancer_group_output$wgt_percent
 cancer_group_output$wgt_percent_2015 = round(cancer_group_output$wgt_percent_2015,4)
 cancer_group_output$wgt_percent_low_2015 = round(cancer_group_output$wgt_percent_low_2015,4)
 cancer_group_output$wgt_percent_upp_2015 = round(cancer_group_output$wgt_percent_upp_2015,4)
+
+#remove questionnaire chapter "About You" from Dashboard output - this chapter will be covered in the Technical Report.
+cancer_group_output <- cancer_group_output %>%
+  filter(topic != "About You")
+
+#remove the results of the "Allocation" type questions (q06, q20 & q27) from Dashboard output.
+cancer_group_output <- cancer_group_output %>%
+  filter(question_type != "Allocation")
 
 #remove cancer groups that are not published - less than 50 responses OVERALL - NONE
 
