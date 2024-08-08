@@ -103,6 +103,11 @@ master_sample_file <- left_join(master_sample_file, board_file, by = c("smr01_hb
 colnames(board_file)[which(names(board_file) == "board_of_treatment")] <-"board_of_residence"
 master_sample_file <- left_join(master_sample_file, board_file, by = c("smr01_hbres_keydate" = "GRO_HB9_2019")) %>%
   relocate(board_of_residence, .after = smr01_hbres_keydate) #relocate board_of_residence
+#Create secondary Board of Residence name which covers Orkney Islands, Shetland and Western Isles.
+master_sample_file <- master_sample_file %>%
+  mutate(board_of_residence2 = if_else((board_of_residence == "NHS Orkney" | board_of_residence == "NHS Shetland" |
+                                       board_of_residence == "NHS Western Isles"),"NHS Orkney, Shetland & Western Isles",board_of_residence)) %>%
+  relocate(board_of_residence2, .after = board_of_residence) #relocate board_of_residence2
 
 #Add on Method of first treatment description
 table(master_sample_file$smr06_method_1st_detection)
@@ -117,7 +122,7 @@ master_sample_file$smr06_method_1st_detection_description[master_sample_file$smr
 table(master_sample_file$smr06_method_1st_detection_description)
 master_sample_file <- master_sample_file %>%
   relocate(smr06_method_1st_detection_description, .after = smr06_method_1st_detection) 
-  
+
 #Save out updated version of Master Sample File for completeness
 #check if the same as before
 hist.file <- readRDS(paste0(data_path,"sample/2024.07.15_finalised_master_CPES_list.rds")) 
