@@ -106,7 +106,7 @@ master_sample_file <- left_join(master_sample_file, board_file, by = c("smr01_hb
 #Create secondary Board of Residence name which covers Orkney Islands, Shetland and Western Isles.
 master_sample_file <- master_sample_file %>%
   mutate(board_of_residence2 = if_else((board_of_residence == "NHS Orkney" | board_of_residence == "NHS Shetland" |
-                                       board_of_residence == "NHS Western Isles"),"NHS Orkney, Shetland & Western Isles",board_of_residence)) %>%
+                                       board_of_residence == "NHS Western Isles"),"NHS Orkney, Shetland & Western Isles","Rest of Scotland")) %>%
   relocate(board_of_residence2, .after = board_of_residence) #relocate board_of_residence2
 
 #Add on Method of first treatment description
