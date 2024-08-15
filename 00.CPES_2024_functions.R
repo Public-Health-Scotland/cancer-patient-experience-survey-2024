@@ -49,9 +49,20 @@ five_age_bands <- function(age) {
                               TRUE ~ "Dummy")
   return(five_age_bands)}
 
+six_age_bands <- function(age) {
+  six_age_band <- character(length(age))
+  six_age_band <- case_when(age >=16 & age <= 34 ~ "16-34",
+                            age >=35 & age <= 44 ~ "35-44",
+                            age >=45 & age <= 54 ~ "45-54",
+                            age >=55 & age <= 64 ~ "55-64",
+                            age >=65 & age <= 74 ~ "65-74",
+                            age >=75 ~ "75 plus",
+                            age >=100 ~ "75 plus")
+  return(six_age_band)}
+
 seven_age_bands <- function(age) {
   seven_age_band <- character(length(age))
-  seven_age_band <- case_when(age >=17 & age <= 24 ~ "16-24",
+  seven_age_band <- case_when(age >=16 & age <= 24 ~ "16-24",
                               age >=25 & age <= 34 ~ "25-34",
                               age >=35 & age <= 44 ~ "35-44",
                               age >=45 & age <= 54 ~ "45-54",
