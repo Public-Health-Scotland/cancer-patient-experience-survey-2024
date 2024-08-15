@@ -22,6 +22,7 @@ source("00.CPES_2024_functions.R")
 #Outputs: 
 #analysis_output_path,"CPES_2024_weighting_group_information.xlsx"
 #analysis_output_path,"responses_with_weights.rds"
+#analysis_output_path,"sg_responses_with_weights.rds"
 
 # Get prepared dataset that lists all cases (respondents and non-respondents).
 validated_results <- readRDS(paste0(analysis_output_path,"validated_results.rds")) 
@@ -53,10 +54,11 @@ network_tx_weights <- make_weights(report_area = network_of_tx,age_band = age_ba
 network_of_residence_tx_weights <- make_weights(report_area = network_of_residence_tx,age_band = age_band_3)%>% mutate(level = "Region - Residence")
 board_tx_weights <- make_weights(report_area = board_of_tx,age_band = age_band_2)%>% mutate(level = "NHS Board - Treatment")
 board_of_residence_tx_weights <- make_weights(report_area = board_of_residence_tx,age_band = age_band_2)%>% mutate(level = "NHS Board - Residence")
+board_of_residence2_tx_weights <- make_weights(report_area = board_of_residence2,age_band = age_band_2)%>% mutate(level = "NHS Board - Residence (alt)")
 
 #Step 2:  Save out the weights for each level of reporting.####
-weights_summary <- rbind(nat_weights,network_tx_weights,network_of_residence_tx_weights,board_tx_weights,board_of_residence_tx_weights) %>% 
-  group_by(level = factor(level,levels = c("National","Region - Treatment","Region - Residence","NHS Board - Treatment","NHS Board - Residence"))) %>% 
+weights_summary <- rbind(nat_weights,network_tx_weights,network_of_residence_tx_weights,board_tx_weights,board_of_residence_tx_weights,board_of_residence2_tx_weights) %>% 
+  group_by(level = factor(level,levels = c("National","Region - Treatment","Region - Residence","NHS Board - Treatment","NHS Board - Residence","NHS Board - Residence (alt)"))) %>% 
   summarise(age_band_count = length(unique(age_band)),
             tumour_group_count = length(unique(tumour_group_text)),
             categories_no_response = length(report_area[n_respondents_weightgrp == 0 & n_population_weightgrp != 0]),
@@ -64,7 +66,7 @@ weights_summary <- rbind(nat_weights,network_tx_weights,network_of_residence_tx_
 
 list_of_datasets <- list("Blank Category Summary" = weights_summary, "National" = nat_weights ,
                          "Network - TX" = network_tx_weights,"Network - Res" = network_of_residence_tx_weights,
-                         "Board - TX" = board_tx_weights,"Board - Res" = board_of_residence_tx_weights)
+                         "Board - TX" = board_tx_weights,"Board - Res" = board_of_residence_tx_weights, "Board - Res (alt)" = board_of_residence2_tx_weights)
 
 write.xlsx(list_of_datasets,paste0(analysis_output_path,"CPES_2024_weighting_group_information.xlsx"))
 
@@ -100,6 +102,10 @@ responses <- add_weights(weight_file = board_tx_weights) %>%
 responses <- responses %>%  mutate(report_area = board_of_residence_tx,age_band = age_band_2) 
 responses <- add_weights(weight_file = board_of_residence_tx_weights) %>% 
   rename(hbr_wt = wt_final) %>% select(-weight_cap,-weight,-matches("weightgrp|level"))
+
+responses <- responses %>%  mutate(report_area = board_of_residence2,age_band = age_band_2) 
+responses <- add_weights(weight_file = board_of_residence2_tx_weights) %>% 
+  rename(hbr2_wt = wt_final) %>% select(-weight_cap,-weight,-matches("weightgrp|level"))
 
 ls(responses)
 
