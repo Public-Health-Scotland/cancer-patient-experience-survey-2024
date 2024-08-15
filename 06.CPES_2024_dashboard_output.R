@@ -76,8 +76,17 @@ geography <- geography %>%
 
 #remove areas that are not published - less than 50 responses OVERALL. 
 #Boards of Treatment and Residence: NHS Orkney, NHS Shetland and NHS Western Isles
-geography <-geography %>%
+geography <- geography %>%
   filter(report_area_name != "NHS Orkney" & report_area_name != "NHS Shetland" & report_area_name != "NHS Western Isles")
+
+#remove areas that are not published – Board of Residence: “Rest of Scotland”
+geography <- geography %>%
+  filter(report_area_name != "Rest of Scotland")
+
+#rename level area "NHS board of residence(alt)" to "NHS board of residence" to report island grouping 
+#"NHS Orkney, Shetland and Orkney Islands" under "NHS board of residence" in dashboard.
+geography <- geography %>%
+  mutate(level = if_else(level == "NHS board of residence(alt)","NHS board of residence",level))
 
 #Suppress questions with responses less than 20.
 geography$suppress_2024 <- 0

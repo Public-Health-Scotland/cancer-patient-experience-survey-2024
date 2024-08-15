@@ -42,13 +42,13 @@ rm(contractor_data2)
 #Retain smr01_sex,age_group_chi,simd2020v2_sc_quintile_smr01,ur6_2020_smr01,ur6_2020_name_smr01,hscp2019,hscp2019name,smr01_hbtreat_keydate,smr01_hbres_keydate,
 #smr01_location,smr01_location2,smr01_locname,full_site_name,ECC_flag,smr06_stage,smr06_method_1st_detection
 
-master_sample_file <- readRDS(paste0(data_path,"sample/2024.07.17_finalised_master_CPES_list.rds")) 
+master_sample_file <- readRDS(paste0(data_path,"sample/2024.08.12_finalised_master_CPES_list.rds")) 
 ls(master_sample_file)
 master_sample_file <- master_sample_file %>%
   select(uniquepatientsurveyid,smr01_sex,smr01_sex_label,age_chi,age_group_chi,simd2020v2_sc_quintile_smr01,ur6_2020_smr01,ur6_2020_name_smr01,
-         hscp2019,hscp2019name,smr01_hbtreat_keydate,board_of_treatment,smr01_hbres_keydate,board_of_residence,network_of_residence_smr01,network_of_treatment_smr01,
+         hscp2019,hscp2019name,smr01_hbtreat_keydate,board_of_treatment,smr01_hbres_keydate,board_of_residence,board_of_residence2,network_of_residence_smr01,network_of_treatment_smr01,
          smr01_location,smr01_location2,smr01_locname,full_site_name,smr06_stage,smr06_method_1st_detection,smr06_method_1st_detection_description,
-         tumour_group_2_smr06,tumour_group_text_smr06,cancer_group_smr06,iqvia_exclude,additional_exclusion_flag)
+         tumour_group_2_smr06,tumour_group_text_smr06,cancer_group_smr06,iqvia_exclude,additional_exclusion_flag,smr06_site10)
 table(master_sample_file$tumour_group_text_smr06)
 # Match on population data from master sample file.
 contractor_data <- contractor_data %>% 
@@ -121,7 +121,7 @@ sg_unrouted_data <- readRDS(paste0(data_path,"Results from Contractor/Final_unro
 sg_unrouted_data <- sg_unrouted_data %>%
   select(-qh_psid,-paper.questionnaire.id,-patientid,-smr01_location,-location_2,-full_site_name,-age_chi,
          -network_of_residence_tx,-network_of_tx,
-         -tumour_group_2_smr06,-tumour_group_text,-iqvia_exclude,-additional_exclusion_flag) %>%
+         -tumour_group_2_smr06,-tumour_group_text,-iqvia_exclude,-additional_exclusion_flag,-smr06_site10) %>%
   relocate(patientid_sg, .before = responsecode) #relocate patientid_sg
 hist.file <- readRDS(paste0(analysis_output_path,"anonymised_unvalidated_response_data_with_patient_data_for_SG.rds")) 
 identical(hist.file,contractor_data) 
