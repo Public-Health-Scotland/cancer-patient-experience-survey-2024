@@ -5,4 +5,5 @@ library(lubridate) #version 1.9.1
 library(srvyr) #version 1.2.7
 library(janitor) #version 2.2.0
 library(phsmethods)
+library (furrr) #version 0.3.1
 
