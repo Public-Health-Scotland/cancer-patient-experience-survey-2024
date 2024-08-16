@@ -45,7 +45,7 @@ source("00.CPES_2024_set_up_file_paths.R")
 source("00.CPES_2024_functions.R")
 
 #Read in Master Sample File as at the end of the mailing process
-Final_Master_Sample_File <- readRDS(paste0(data_path,"sample/2024.07.17_finalised_master_CPES_list.rds"))
+Final_Master_Sample_File <- readRDS(paste0(data_path,"sample/2024.08.12_finalised_master_CPES_list.rds"))
 ls(Final_Master_Sample_File)
 Final_Master_Sample_File <- Final_Master_Sample_File %>%
   select(uniquepatientsurveyid,iqvia_flagdate,iqvia_exclude)#iqvia_exclude already in "validated_results.rds"
@@ -433,7 +433,7 @@ saveWorkbook(template, (paste0(output_path,"technical_report/technical_report_po
 #Outputs:output_path,"technical_report/sample_removals_note.xlsx"
 
 #Read in list on selected patients for surveying
-master_list <- readRDS(paste0(data_path,"sample/2024.07.17_finalised_master_CPES_list.rds"))
+master_list <- readRDS(paste0(data_path,"sample/2024.08.12_finalised_master_CPES_list.rds"))
 ls(master_list)
 master_list <- master_list %>% 
   select("iqvia_flagdate","nhscr_date","nhscr_reason","chili_date","chili_reason",
