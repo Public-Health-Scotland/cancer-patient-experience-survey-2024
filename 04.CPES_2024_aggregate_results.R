@@ -52,7 +52,8 @@ responses_sdo_nat <- as_survey_design(responses_longer,ids = patientid,weights =
 responses_sdo_nett <- as_survey_design(responses_longer,ids = patientid,weights = nett_wt) 
 responses_sdo_netr <- as_survey_design(responses_longer,ids = patientid,weights = netr_wt) 
 responses_sdo_hbt <- as_survey_design(responses_longer,ids = patientid,weights = hbt_wt) 
-responses_sdo_hbr <- as_survey_design(responses_longer,ids = patientid,weights = hbr_wt) 
+responses_sdo_hbr <- as_survey_design(responses_longer,ids = patientid,weights = hbr_wt)
+responses_sdo_hbr2 <- as_survey_design(responses_longer,ids = patientid,weights = hbr2_wt)
 responses_sdo_cc <- as_survey_design(responses_longer,ids = patientid,weights = no_wt) 
 
 #define aggregate_responses function
@@ -76,6 +77,7 @@ nett <- aggregate_responses(responses_sdo_nett,network_of_tx)  %>% mutate(level 
 netr <- aggregate_responses(responses_sdo_netr,network_of_residence_tx) %>%  mutate(level = "Network of residence")
 hbt <- aggregate_responses(responses_sdo_hbt,board_of_tx) %>%  mutate(level =  "NHS board of treatment")
 hbr <- aggregate_responses(responses_sdo_hbr,board_of_residence_tx) %>%   mutate(level = "NHS board of residence")
+hbr2 <- aggregate_responses(responses_sdo_hbr2,board_of_residence2) %>%   mutate(level = "NHS board of residence (alt)")
 cc <- aggregate_responses(responses_sdo_cc,cancer_centre) %>%  mutate(level = "Cancer centre")
 cg <- aggregate_responses(responses_sdo_nat,cancer_group_smr06) %>%  mutate(level = "Cancer group")
 
@@ -97,7 +99,7 @@ expand_table <- function(df) {
   expand.table <- cbind(expand.table,new_columns)}
 
 #create output for geographical and treatment areas ####
-output <- bind_rows(nat,nett,netr,hbt,hbr,cc)
+output <- bind_rows(nat,nett,netr,hbt,hbr,hbr2,cc)
 
 #read in lookups
 hb_names <- read.csv(paste0(lookup_path,"SMRA.ANALYSIS.HEALTH_BOARD.csv"))%>%
@@ -237,11 +239,12 @@ nett_q55 <- aggregate_responses_average(responses_sdo_nett,network_of_residence_
 netr_q55 <- aggregate_responses_average(responses_sdo_netr,network_of_tx) %>%  mutate(level = "Network of residence")
 hbt_q55 <- aggregate_responses_average(responses_sdo_hbt,board_of_tx) %>%  mutate(level =  "NHS board of treatment")
 hbr_q55 <- aggregate_responses_average(responses_sdo_hbr,board_of_residence_tx) %>%   mutate(level = "NHS board of residence")
+hbr2_q55 <- aggregate_responses_average(responses_sdo_hbr2,board_of_residence2) %>%   mutate(level = "NHS board of residence (alt)")
 cc_q55 <- aggregate_responses_average(responses_sdo_cc,cancer_centre) %>%  mutate(level = "Cancer centre")
 cg_q55 <- aggregate_responses_average(responses_sdo_nat,cancer_group_smr06) %>%  mutate(level = "Cancer group")
 
 #create q55 output for all levels####
-q55_output <- bind_rows(nat_q55,nett_q55,netr_q55,hbt_q55,cc_q55,cg_q55)
+q55_output <- bind_rows(nat_q55,nett_q55,netr_q55,hbt_q55,hbr_q55,hbr2_q55,cc_q55,cg_q55)
 
 q55_output <- q55_output %>% 
   #tidy report_area names
