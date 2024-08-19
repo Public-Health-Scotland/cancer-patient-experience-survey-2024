@@ -82,6 +82,33 @@ responses_longer <- responses_longer %>%
                                    TRUE ~ cancer_centre)) %>% 
   select(-starts_with("allocation"))
 
+#Update weights for q06, q20 and q27 plus all section "About you" to 1 as the responses to these questions are unweighted.
+responses_longer <- responses_longer %>%
+  mutate(nat_wt = if_else(question == "q06" | question == "q20" | question == "q27" | question == "q57" | question == "q58" | question == "q59" |
+                            question == "q60"  | question == "q61a" | question == "q61b" | question == "q61c" | question == "q61d" |
+                            question == "q61e" | question == "q61f" | question == "q61g" | question == "q61h" | question == "q61i" | question == "q61j" | 
+                            question == "q61k" | question == "q62",1,nat_wt)) %>%
+  mutate(nett_wt = if_else(question == "q06" | question == "q20" | question == "q27" | question == "q57" | question == "q58" | question == "q59" |
+                             question == "q60"  | question == "q61a" | question == "q61b" | question == "q61c" | question == "q61d" |
+                             question == "q61e" | question == "q61f" | question == "q61g" | question == "q61h" | question == "q61i" | question == "q61j" | 
+                             question == "q61k" | question == "q62",1,nett_wt)) %>%
+  mutate(netr_wt = if_else(question == "q06" | question == "q20" | question == "q27" | question == "q57" | question == "q58" | question == "q59" |
+                             question == "q60"  | question == "q61a" | question == "q61b" | question == "q61c" | question == "q61d" |
+                             question == "q61e" | question == "q61f" | question == "q61g" | question == "q61h" | question == "q61i" | question == "q61j" | 
+                             question == "q61k" | question == "q62",1,netr_wt)) %>%
+  mutate(hbt_wt = if_else(question == "q06" | question == "q20" | question == "q27" | question == "q57" | question == "q58" | question == "q59" |
+                            question == "q60"  | question == "q61a" | question == "q61b" | question == "q61c" | question == "q61d" |
+                            question == "q61e" | question == "q61f" | question == "q61g" | question == "q61h" | question == "q61i" | question == "q61j" | 
+                            question == "q61k" | question == "q62",1,hbt_wt)) %>%
+  mutate(hbr_wt = if_else(question == "q06" | question == "q20" | question == "q27" | question == "q57" | question == "q58" | question == "q59" |
+                            question == "q60"  | question == "q61a" | question == "q61b" | question == "q61c" | question == "q61d" |
+                            question == "q61e" | question == "q61f" | question == "q61g" | question == "q61h" | question == "q61i" | question == "q61j" | 
+                            question == "q61k" | question == "q62",1,hbr_wt)) %>%
+  mutate(hbr2_wt = if_else(question == "q06" | question == "q20" | question == "q27" | question == "q57" | question == "q58" | question == "q59" |
+                             question == "q60"  | question == "q61a" | question == "q61b" | question == "q61c" | question == "q61d" |
+                             question == "q61e" | question == "q61f" | question == "q61g" | question == "q61h" | question == "q61i" | question == "q61j" | 
+                             question == "q61k" | question == "q62",1,hbr2_wt))
+
 ##check if the same as before, then save new responses_longer.rds file ####
 hist.file <- readRDS(paste0(analysis_output_path,"responses_longer.rds"))
 identical(hist.file,responses_longer)

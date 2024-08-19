@@ -86,7 +86,7 @@ geography <- geography %>%
 #rename level area "NHS board of residence(alt)" to "NHS board of residence" to report island grouping 
 #"NHS Orkney, Shetland and Orkney Islands" under "NHS board of residence" in dashboard.
 geography <- geography %>%
-  mutate(level = if_else(level == "NHS board of residence(alt)","NHS board of residence",level))
+  mutate(level = if_else(level == "NHS board of residence (alt)","NHS board of residence",level))
 
 #Suppress questions with responses less than 20.
 geography$suppress_2024 <- 0

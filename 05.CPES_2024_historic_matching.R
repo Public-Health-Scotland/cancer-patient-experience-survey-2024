@@ -237,4 +237,4 @@ all.equal(hist.file,cancer_group_output3)
 saveRDS(cancer_group_output3, paste0(analysis_output_path,"cancer_group_output_2024.rds"))
 write.xlsx(cancer_group_output3,paste0(analysis_output_path,"cancer_group_output_2024.xlsx"))
 
-rm(cancer_group_historic_2015,cancer_group_historic_2018,cancer_group_output,cancer_group_output2,cancer_group_output3,hist.file)
+rm(cancer_group_historic_2015,cancer_group_historic_2018,cancer_group_output,cancer_group_output2,cancer_group_output3,hist.file,question_lookup)
