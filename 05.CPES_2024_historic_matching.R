@@ -102,7 +102,7 @@ output <- output %>%
   mutate(response_text_dashboard = if_else(is.na(response_text_dashboard),response_text_analysis,response_text_dashboard))
 
 ##2018####
-historic_2018 <- readRDS(paste0(data_path_2018,"output.rds"))
+historic_2018 <- readRDS(paste0(data_path_2018,"output_2018.rds"))
 ls(historic_2018)
 historic_2018 <- historic_2018 %>% 
   select(question,level,report_area_name,report_area,response_option,response_text_analysis,n_includedresponses,n_response,wgt_percent,wgt_percent_low,wgt_percent_upp)%>%
@@ -126,7 +126,7 @@ output2 <- output %>%
                     
 
 ##2015####
-historic_2015 <- readRDS(paste0(data_path_2015,"output.rds"))
+historic_2015 <- readRDS(paste0(data_path_2015,"output_2015.rds"))
 ls(historic_2015)
 historic_2015 <- historic_2015 %>% 
   select(question,level,report_area_name,report_area,response_option,response_text_analysis,n_includedresponses,n_response,wgt_percent,wgt_percent_low,wgt_percent_upp)%>%
@@ -157,6 +157,13 @@ output3 <- output3 %>%
          n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent_low_2018,wgt_percent_upp_2018,comparability_2018,
          n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent_low_2015,wgt_percent_upp_2015,comparability_2015)
 
+
+#Correct CIs so that all in the range (0,1)
+sum(output3$wgt_percent_upp > 1,na.rm = TRUE)
+table(round(output3$wgt_percent_upp[output3$wgt_percent_upp > 1],2))
+output3 <- output3 %>% 
+  mutate(across(matches("_low"),function(x) if_else(x < 0, x*0,x)),
+         across(matches("_upp"),function(x) if_else(x > 1, x/x,x)))
 #check if the same as before
 hist.file <- readRDS(paste0(analysis_output_path,"output_2024.rds")) 
 all.equal(hist.file,output3)  
