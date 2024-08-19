@@ -8,7 +8,7 @@
 # 
 # Approximate run time: 2 min
 # 
-# Approximate memory usage:  GiB
+# Approximate memory usage:  < 1 GiB
 ###################################################################################
 
 source("00.CPES_2024_set_up_packages.R")
@@ -164,7 +164,7 @@ unrouted_data <- unrouted_data %>%  #apply rule
                           TRUE ~ q07b))
 tabyl(unrouted_data,q07a,q07b, useNA = c("always"))
 
-#b)	 If respondent ticks any of (1,2) (yes, no) and 5 (donÃ¢ÂÂt know) is also ticked, set 1,2 & 5 to blank
+#b)	 If respondent ticks any of (1,2) (yes, no) and 5 (don't know) is also ticked, set 1,2 & 5 to blank
 Rule02b <- sum(if_else(unrouted_data$q07e == 1 & (unrouted_data$q07a == 1 | unrouted_data$q07b == 1),1,0),na.rm = TRUE)
 
 #Create temporary rule02b_flag
@@ -188,6 +188,24 @@ unrouted_data <- unrouted_data %>%  #apply rule
                           TRUE ~ q07b),
          q07e = case_when(rule02b_flag == 1 ~ NA,
                           TRUE ~ q07e))
+
+
+#Apply tick all that apply rule. Blanks should be set to "No" (2) unless none of the response options were ticked, in which case all response options should be set to NA.
+q07 <- names(unrouted_data %>% select(starts_with("q07")))
+
+unrouted_data <- unrouted_data %>%  #calculate denominator
+  mutate(q07 = if_else(if_any(all_of(q07), ~ !is.na(.x)),1,0))
+         
+q07_pre_validation <- unrouted_data %>% 
+  group_by(q07, q07a, q07b, q07c, q07d, q07e, q07f) %>% 
+  summarise(count = n())
+
+unrouted_data <- unrouted_data %>%  #apply rule to recode NA to 2 (No) if denominator is 1     
+  mutate(across(all_of(q07), function(x) if_else(q07 == 1, replace_na(x,2),x)))
+
+q07_post_validation <- unrouted_data %>% 
+  group_by(q07, q07a, q07b, q07c, q07d, q07e, q07f) %>% 
+  summarise(count = n())
 
 table(unrouted_data$q07a)
 table(unrouted_data$q07b)
@@ -367,7 +385,7 @@ tabyl(unrouted_data,q48,q49) #values after applying rule
 
 ##Rule 9.	Q50: How did the health and care team communicate with you at each stage? (tick all that apply)####
 q50 <- names(unrouted_data %>% select(starts_with("q50")))
-# Rule 9a.	Q50: If respondent ticks canÃ¢ÂÂt remember in addition to any other communication method (including not applicable), then set canÃ¢ÂÂt remember to blank
+# Rule 9a.	Q50: If respondent ticks can't remember in addition to any other communication method (including not applicable), then set canÃ¢ÂÂt remember to blank
 # If Q50_6 = 1 and any of Q50_(1 to 5) = 1 set Q50_6  to blank (xx records)
 
 lapply(unrouted_data[q50],table) #values before applying rule
@@ -442,7 +460,7 @@ lapply(unrouted_data %>% select(starts_with("q50")),table,useNA = c("always")) #
 
 ##Rule 10.	Q51: What would have been your preferred method of communication for each of these stages? (tick all that apply)####
 
-# Rule 10a.	Q51: If respondent ticks canÃ¢ÂÂt remember in addition to any other communication method (including not applicable), then set canÃ¢ÂÂt remember to blank
+# Rule 10a.	Q51: If respondent ticks can't remember in addition to any other communication method (including not applicable), then set canÃ¢ÂÂt remember to blank
 # If Q51_6 = 1 and any of Q51_(1 to 5) = 1 set Q51_6  to blank (xx records)
 
 lapply(unrouted_data %>% select(starts_with("q51")),table,useNA = c("always"))  #values before applying rule
