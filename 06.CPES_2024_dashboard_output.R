@@ -111,7 +111,7 @@ geography$wgt_percent_upp_2015[geography$suppress == 1] <- NA
 geography$suppress <- NULL
 
 geography <- geography %>%
-  select(question,question_text,response_option,response_text_analysis,response_text_dashboard,topic,question_type,level,report_area,report_area_name,
+  select(question,question_text,question_text_dashboard,response_option,response_text_analysis,response_text_dashboard,topic,question_type,level,report_area,report_area_name,
          n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,wgt_percent_low,wgt_percent_upp,
          n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent,wgt_percent_low_2018,wgt_percent_upp_2018,
          n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent,wgt_percent_low_2015,wgt_percent_upp_2015)
@@ -194,7 +194,7 @@ cancer_group_output$wgt_percent_upp_2015[cancer_group_output$suppress == 1] <- N
 cancer_group_output$suppress <- NULL
 
 cancer_group_output <- cancer_group_output %>%
-  select(question,question_text,response_option,response_text_analysis,response_text_dashboard,topic,question_type,level,report_area,
+  select(question,question_text,question_text_dashboard,response_option,response_text_analysis,response_text_dashboard,topic,question_type,level,report_area,
          n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,wgt_percent_low,wgt_percent_upp,
          n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent_low_2018,wgt_percent_upp_2018,
          n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent_low_2015,wgt_percent_upp_2015)
