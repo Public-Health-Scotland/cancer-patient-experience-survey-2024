@@ -86,7 +86,7 @@ cg <- aggregate_responses(responses_sdo_nat,cancer_group_smr06) %>%  mutate(leve
 question_lookup <- question_lookup %>% 
   filter(!response_text_analysis %in% c(NA,"Exclude") &  #filter only for those questions and response options being included in output
            question %in% questions) %>%
-  group_by(question,question_text,response_text_analysis,topic,question_type,`2018_question`,`2015_question`) %>% 
+  group_by(question,question_text,question_text_dashboard,response_text_analysis,topic,question_type,`2018_question`,`2015_question`) %>% 
   summarise(response_option = min(response_option),.groups = "keep") %>%
   arrange(question,response_option)
 
@@ -158,6 +158,10 @@ output <- master_question_table %>%
   select(-hb_name) %>% 
   arrange(level,report_area,question, response_option)
 
+#Rename under report_area_name "National Facility" to "NHS Golden Jubilee"
+output <- output %>%
+  mutate(report_area_name = if_else(report_area_name == "National Facility","NHS Golden Jubilee",report_area_name))
+
 #create cancer_group_output####
 cancer_group_output <- bind_rows(nat,cg)
 
@@ -196,7 +200,7 @@ cancer_group_output <- master_question_table %>%
 
 #this is largely for checking purposes. Remove if not needed
 output <- output %>%  
-  select(question,question_text,response_text_analysis,topic,question_type,`2018_question`,`2015_question`,
+  select(question,question_text,question_text_dashboard,response_text_analysis,topic,question_type,`2018_question`,`2015_question`,
          response_option,report_area,level,n_response,n_wgt_response,n_includedresponses,n_wgt_includedresponses,
          wgt_percent,percent,wgt_percent_low,wgt_percent_upp,report_area_name)
 
@@ -264,6 +268,10 @@ q55_output <- q55_output %>%
                                       TRUE ~ report_area)) %>% 
   select(-hb_name) %>% 
   arrange(level,report_area,question)
+
+#Rename under report_area_name "National Facility" to "NHS Golden Jubilee"
+q55_output <- q55_output %>%
+  mutate(report_area_name = if_else(report_area_name == "National Facility","NHS Golden Jubilee",report_area_name))
 
 hist_output <- readRDS(paste0(analysis_output_path,"q55_output.rds"))
 all.equal(hist_output$wgt_mean,q55_output$wgt_mean)
