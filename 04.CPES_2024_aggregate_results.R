@@ -8,7 +8,7 @@
 # 
 # Approximate run time: 30 minutes
 # 
-# Approximate memory usage: 2 * CPU
+# Approximate memory usage: <2 GiB
 # 
 # *****************************************
 
@@ -22,6 +22,8 @@
 #analysis_output_path,"output.rds"
 #analysis_output_path,"cancer_group_output.xlsx"
 #analysis_output_path,"cancer_group_output.rds"
+#analysis_output_path,"q55_output.xlsx"
+#analysis_output_path,"q55_output.rds"
 
 source("00.CPES_2024_set_up_packages.R")
 source("00.CPES_2024_set_up_file_paths.R")
@@ -46,40 +48,76 @@ responses_longer <- responses_longer %>%
   left_join(question_lookup %>% select(question,response_option,response_text_analysis),by = c("question","response_option")) %>% 
   mutate(response_text_analysis = case_match(response_text_analysis,"Exclude" ~ NA,.default = response_text_analysis))
 
+responses_wider <- responses_longer %>% 
+  pivot_wider(id_cols = c(patientid,all_of(report_areas_output),all_of(report_area_wt),no_wt,cancer_group_smr06),names_from = question,values_from = response_text_analysis)
+
 #define survey design objects
 options(survey.lonely.psu="remove")
-responses_sdo_nat <- as_survey_design(responses_longer,ids = patientid,weights = nat_wt) 
-responses_sdo_nett <- as_survey_design(responses_longer,ids = patientid,weights = nett_wt) 
-responses_sdo_netr <- as_survey_design(responses_longer,ids = patientid,weights = netr_wt) 
-responses_sdo_hbt <- as_survey_design(responses_longer,ids = patientid,weights = hbt_wt) 
-responses_sdo_hbr <- as_survey_design(responses_longer,ids = patientid,weights = hbr_wt)
-responses_sdo_hbr2 <- as_survey_design(responses_longer,ids = patientid,weights = hbr2_wt)
-responses_sdo_cc <- as_survey_design(responses_longer,ids = patientid,weights = no_wt) 
+surveydesign_nat<-svydesign(ids=~1, weights=~nat_wt, data=responses_wider)
+surveydesign_nett<-svydesign(ids=~1, weights=~nett_wt, data=responses_wider)
+surveydesign_netr<-svydesign(ids=~1, weights=~netr_wt, data=responses_wider)
+surveydesign_hbt<-svydesign(ids=~1, weights=~hbt_wt, data=responses_wider)
+surveydesign_hbr<-svydesign(ids=~1, weights=~hbr_wt, data=responses_wider)
+surveydesign_hbr2<-svydesign(ids=~1, weights=~hbr2_wt, data=responses_wider)
+surveydesign_cc<-svydesign(ids=~1, weights=~no_wt, data=responses_wider)
+
+#define function to calculate CIs using survey package
+get_survey_CIs <- function(x,survey_design_object,report_areas) {
+  survey_design_object <- update(survey_design_object, analysis_var=factor(get(x)), grouping_var=factor(get(report_areas)))
+  as.data.frame(confint(svyby(~analysis_var, by=~grouping_var, survey_design_object,svymean, na.rm=TRUE, deff="replace", keep.var=TRUE))) %>% 
+    rename(wgt_percent_low = `2.5 %`,
+           wgt_percent_upp = `97.5 %`) %>% 
+    mutate("question" = x,
+           divider = str_locate(rownames(.),":"),
+           divider2 = if_else(str_detect(rownames(.),"[[:punct:]]{3}") == T,
+                              str_locate(rownames(.),"[[:punct:]]{3}")-1,
+                              nchar(rownames(.))),#get variable values from row names
+           report_area = substr(rownames(.),1,divider-1),
+           response_text_analysis = substr(rownames(.),divider+13,divider2)) %>% 
+    select(report_area, question, response_text_analysis, wgt_percent_low,wgt_percent_upp)%>% 
+    remove_rownames(.)}
 
 #define aggregate_responses function
-aggregate_responses <- function(survey_design_object,report_areas) {
-  plan(multisession) #tells furrr to parallel process across available CPUs
-  survey_design_object %>% 
+aggregate_responses <- function(report_areas,weights) {
+  responses_longer %>% 
     filter(!is.na(response_text_analysis)) %>% 
-    group_by("report_area" = {{report_areas}}) %>%
-    group_split() |>
-    future_map(\(report_area) report_area |> #tells furrr to split process up by area
-                 group_by(question,response_text_analysis) %>%
-                 summarise(report_area = unique(report_area) , 
-                           wgt_percent = survey_mean(vartype = c("ci"), level = 0.95),
-                           n_response = n(),
-                           n_wgt_response = sum(cur_svy_wts(),na.rm = TRUE))) |>
-    list_rbind()}
+    group_by("report_area" = {{report_areas}},question,response_text_analysis) %>%
+    summarise(n_response = n(),
+              n_wgt_response = sum({{weights}},na.rm = TRUE),.groups = "keep")}
 
 #run at each level####
-nat <- aggregate_responses(responses_sdo_nat,scotland)  %>% mutate(level = "Scotland")
-nett <- aggregate_responses(responses_sdo_nett,network_of_tx)  %>% mutate(level = "Network of treatment")
-netr <- aggregate_responses(responses_sdo_netr,network_of_residence_tx) %>%  mutate(level = "Network of residence")
-hbt <- aggregate_responses(responses_sdo_hbt,board_of_tx) %>%  mutate(level =  "NHS board of treatment")
-hbr <- aggregate_responses(responses_sdo_hbr,board_of_residence_tx) %>%   mutate(level = "NHS board of residence")
-hbr2 <- aggregate_responses(responses_sdo_hbr2,board_of_residence2) %>%   mutate(level = "NHS board of residence (alt)")
-cc <- aggregate_responses(responses_sdo_cc,cancer_centre) %>%  mutate(level = "Cancer centre")
-cg <- aggregate_responses(responses_sdo_nat,cancer_group_smr06) %>%  mutate(level = "Cancer group")
+nat_cis <- lapply(questions, function (x) get_survey_CIs(x,surveydesign_nat,"scotland")) %>%  bind_rows() %>% mutate(level = "Scotland")
+nat <- aggregate_responses(scotland,nat_wt) 
+nat <- nat_cis %>%   left_join(nat,by = c("report_area","question","response_text_analysis"))
+
+
+nett_cis <- lapply(questions, function (x) get_survey_CIs(x,surveydesign_nett,"network_of_tx")) %>%  bind_rows() %>% mutate(level = "Network of treatment")
+nett <- aggregate_responses(network_of_tx,nett_wt) 
+nett <- nett_cis %>%   left_join(nett,by = c("report_area","question","response_text_analysis"))
+
+netr_cis <- lapply(questions, function (x) get_survey_CIs(x,surveydesign_netr,"network_of_residence_tx")) %>%  bind_rows() %>% mutate(level = "Network of residence")
+netr <- aggregate_responses(network_of_residence_tx,netr_wt) 
+netr <- netr_cis %>%   left_join(netr,by = c("report_area","question","response_text_analysis"))
+
+hbt_cis <- lapply(questions, function (x) get_survey_CIs(x,surveydesign_hbt,"board_of_tx")) %>%  bind_rows() %>% mutate(level = "NHS board of treatment")
+hbt <- aggregate_responses(board_of_tx,hbt_wt) 
+hbt <- hbt_cis %>%   left_join(hbt,by = c("report_area","question","response_text_analysis"))
+
+hbr_cis <- lapply(questions, function (x) get_survey_CIs(x,surveydesign_hbr,"board_of_residence_tx")) %>%  bind_rows() %>%  mutate(level = "NHS board of residence")
+hbr <- aggregate_responses(board_of_residence_tx,hbr_wt) 
+hbr <- hbr_cis %>%  left_join(hbr,by = c("report_area","question","response_text_analysis"))
+
+hbr2_cis <- lapply(questions, function (x) get_survey_CIs(x,surveydesign_hbr,"board_of_residence2")) %>%  bind_rows() %>% mutate(level = "NHS board of residence (alt)")
+hbr2 <- aggregate_responses(board_of_residence2,hbr2_wt) 
+hbr2 <- hbr2_cis %>%   left_join(hbr2,by = c("report_area","question","response_text_analysis"))
+
+cc_cis <- lapply(analysis_questions, function (x) get_survey_CIs(x,surveydesign_cc,"cancer_centre")) %>%  bind_rows() %>% mutate(level = "Cancer centre")
+cc <- aggregate_responses(cancer_centre,no_wt) 
+cc <- cc_cis %>%   left_join(cc,by = c("report_area","question","response_text_analysis"))
+
+cg_cis <- lapply(analysis_questions, function (x) get_survey_CIs(x,surveydesign_nat,"cancer_group_smr06")) %>%  bind_rows() %>% mutate(level = "Cancer group")
+cg <- aggregate_responses(cancer_group_smr06,nat_wt) 
+cg <- cg_cis %>%  left_join(cg,by = c("report_area","question","response_text_analysis"))
 
 #Create an index of the required rows, for using in creating master tables with all possible question and response options
 #Prepare question lookup first
@@ -106,7 +144,9 @@ hb_names <- read.csv(paste0(lookup_path,"SMRA.ANALYSIS.HEALTH_BOARD.csv"))%>%
   select(GRO_HB9_2019,DESCRIPTION) %>%
   rename(hb_code = GRO_HB9_2019) %>%
   rename(hb_name = DESCRIPTION) %>%
+  mutate(hb_name = case_match(hb_name,"National Facility" ~ "NHS Golden Jubilee",.default = hb_name)) %>% 
   filter(hb_code != "")
+
 
 #create master question with one row for every question and response option,for every report area and level. 
 master_question_table <- expand_table(output) 
@@ -115,11 +155,13 @@ output <- master_question_table %>%
   #match on data to master question table
   left_join(output, 
             by = c("level","report_area","question","response_text_analysis")) %>% 
-  mutate(across(c(wgt_percent,wgt_percent_low,wgt_percent_upp,n_response,n_wgt_response), ~replace_na(.,0))) %>% 
+  mutate(across(c(n_response,n_wgt_response), ~replace_na(.,0))) %>% 
   group_by(level,report_area,question) %>%
   mutate(n_includedresponses = sum(n_response,na.rm = TRUE),
          n_wgt_includedresponses = sum(n_wgt_response,na.rm = TRUE),#recalculate to fill in gaps with na values
+         wgt_percent = n_wgt_response / n_wgt_includedresponses,
          percent = n_response / n_includedresponses) %>% 
+  mutate(across(c(percent,wgt_percent), ~replace_na(.,0))) %>% 
   ungroup() %>% 
   #tidy tick all that apply responses
   filter(!(grepl("tick all that apply",question_type) == TRUE & response_option == "2")) %>% #remove 'no' values for tick all that apply %>% 
@@ -150,17 +192,13 @@ output <- master_question_table %>%
                                       report_area ==  "Not allocated"~ "Not allocated" ,  
                                       report_area ==  "S116B"  ~ "Edinburgh Cancer Centre",                                              
                                       report_area ==  "T101H"  ~ "Ninewells Hospital" ,
-                                      report_area == "1" ~ "North of Scotland (NOSCAN)",
-                                      report_area == "2" ~ "South of Scotland (SCAN)",
-                                      report_area == "3" ~ "West of Scotland (WOSCAN)",
+                                      report_area == "1" ~ "NCA – North Cancer Alliance",
+                                      report_area == "2" ~ "SCAN – South East Cancer Network",
+                                      report_area == "3" ~ "WoSCAN – West of Scotland Cancer Network",
                                       report_area == "4" ~ "No network",
                                       TRUE ~ report_area)) %>% 
   select(-hb_name) %>% 
   arrange(level,report_area,question, response_option)
-
-#Rename under report_area_name "National Facility" to "NHS Golden Jubilee"
-output <- output %>%
-  mutate(report_area_name = if_else(report_area_name == "National Facility","NHS Golden Jubilee",report_area_name))
 
 #create cancer_group_output####
 cancer_group_output <- bind_rows(nat,cg)
@@ -172,11 +210,13 @@ cancer_group_output <- master_question_table %>%
   #match on data to master question table
   left_join(cancer_group_output, 
             by = c("level","report_area","question","response_text_analysis")) %>% 
-  mutate(across(c(wgt_percent,wgt_percent_low,wgt_percent_upp,n_response,n_wgt_response), ~replace_na(.,0))) %>% 
+  mutate(across(c(n_response,n_wgt_response), ~replace_na(.,0))) %>% 
   group_by(level,report_area,question) %>%
   mutate(n_includedresponses = sum(n_response,na.rm = TRUE),
          n_wgt_includedresponses = sum(n_wgt_response,na.rm = TRUE),#recalculate to fill in gaps with na values
+         wgt_percent = n_wgt_response / n_wgt_includedresponses,
          percent = n_response / n_includedresponses) %>% 
+  mutate(across(c(percent,wgt_percent), ~replace_na(.,0))) %>% 
   ungroup() %>% 
   #tidy tick all that apply responses
   filter(!(grepl("tick all that apply",question_type) == TRUE & response_option == "2")) %>% #remove 'no' values for tick all that apply %>% 
@@ -205,47 +245,95 @@ output <- output %>%
          wgt_percent,percent,wgt_percent_low,wgt_percent_upp,report_area_name)
 
 
-hist_output <- readRDS(paste0(analysis_output_path,"output.rds"))
+hist_output <- readRDS(paste0(analysis_output_path,"output_20240820.rds"))
 all.equal(hist_output$level,output$level)
-all.equal(hist_output %>% select(-wgt_percent_low,-wgt_percent_upp),output%>% select(-wgt_percent_low,-wgt_percent_upp))
-
+sum(is.na(output$wgt_percent))
+all.equal(hist_output %>% select(-wgt_percent_low,-wgt_percent_upp,-report_area_name),output%>% select(-wgt_percent_low,-wgt_percent_upp,-report_area_name))
 write.xlsx(output,paste0(analysis_output_path,"output.xlsx"))
 saveRDS(output, paste0(analysis_output_path,"output.rds"))
 
-hist_cancer_group_output <- readRDS(paste0(analysis_output_path,"cancer_group_output.rds"))
-all.equal(hist_cancer_group_output,cancer_group_output)
+hist_cancer_group_output <- readRDS(paste0(analysis_output_path,"cancer_group_output_20240820.rds"))
+all.equal(hist_cancer_group_output$question_text_dashboard,cancer_group_output$question_text_dashboard)
+all.equal(hist_cancer_group_output %>% select(-wgt_percent_low,-wgt_percent_upp),
+          cancer_group_output%>% select(-wgt_percent_low,-wgt_percent_upp))
+check <- cancer_group_output %>% 
+    left_join(hist_cancer_group_output, by = c("level", "report_area", "question", "question_text", "question_text_dashboard","response_text_analysis",
+                      "topic", "question_type", "2018_question","2015_question","response_option"),
+                        suffix = c("_new","_historic")) %>% 
+  mutate(check1 = if_else(percent_new != percent_historic,1,0))
 write.xlsx(cancer_group_output,paste0(analysis_output_path,"cancer_group_output.xlsx"))
 saveRDS(cancer_group_output, paste0(analysis_output_path,"cancer_group_output.rds"))
 
 
 #run average for question 55 ####
 #define the aggregate function.####
+responses_wider_q55 <- responses_longer %>% 
+  filter(question == "q55") %>% 
+  mutate(question = "q55_ave",
+         response_option = as.numeric(response_option))%>% 
+  pivot_wider(id_cols = c(patientid,all_of(report_areas_output),all_of(report_area_wt),no_wt,cancer_group_smr06),names_from = question,values_from = response_option)
+
+#define survey design objects
+options(survey.lonely.psu="remove")
+surveydesign_nat_q55 <- as_survey_design(responses_wider_q55,ids = 1,weights = nat_wt) 
+surveydesign_nett_q55 <- as_survey_design(responses_wider_q55,ids = 1,weights = nett_wt) 
+surveydesign_netr_q55 <- as_survey_design(responses_wider_q55,ids = 1,weights = netr_wt) 
+surveydesign_hbt_q55 <- as_survey_design(responses_wider_q55,ids = 1,weights = hbt_wt) 
+surveydesign_hbr_q55 <- as_survey_design(responses_wider_q55,ids = 1,weights = hbr_wt) 
+surveydesign_hbr2_q55 <- as_survey_design(responses_wider_q55,ids = 1,weights = hbr2_wt) 
+surveydesign_cc_q55 <- as_survey_design(responses_wider_q55,ids = 1,weights = no_wt) 
+
 aggregate_responses_average <- function(survey_design_object,report_areas) {
-  plan(multisession)
   survey_design_object %>% 
-    filter(!is.na(response_text_analysis)) %>% 
-    filter(question == "q55") %>% 
-    mutate(question = "q55_ave",
-           response_option = as.numeric(response_option))%>% 
-    group_by("report_area" = {{report_areas}}) %>%
-    group_split() |>
-    future_map(\(report_area) report_area |>
-                 group_by(question) %>%
-                 summarise(report_area = unique(report_area) , 
-                           wgt_mean = survey_mean(response_option,vartype = c("ci"), level = 0.95),
-                           n_response = n(),
-                           n_wgt_response = sum(cur_svy_wts(),na.rm = TRUE))) |>
-    list_rbind()}
+    group_by(question = "q55_ave","report_area" = {{report_areas}}) %>%
+    summarise(wgt_mean = survey_mean(q55_ave,na.rm = TRUE),
+             n_response = n(),
+             n_wgt_response = sum(cur_svy_wts(),na.rm = TRUE),
+             wgt_mean2  = mean(q55_ave,na.rm = TRUE)) %>% 
+    select(-wgt_mean_se)}
+
+get_survey_CIs_ave <- function(survey_design_object,report_areas) {
+  survey_design_object <- update(survey_design_object, analysis_var=q55_ave, grouping_var=factor(get(report_areas)))
+  as.data.frame(confint(svyby(~analysis_var, by=~grouping_var, survey_design_object,svymean, na.rm=TRUE, deff="replace", keep.var=TRUE))) %>% 
+  rename(wgt_mean_low = `2.5 %`,
+       wgt_mean_upp = `97.5 %`) %>% 
+  mutate("question" = "q55_ave",#get variable values from row names
+         report_area = rownames(.)) %>% 
+  select(report_area, question, wgt_mean_low,wgt_mean_upp)%>% 
+    remove_rownames(.)}
 
 #run at each level####
-nat_q55  <- aggregate_responses_average(responses_sdo_nat,scotland) %>%  mutate(level = "Scotland") 
-nett_q55 <- aggregate_responses_average(responses_sdo_nett,network_of_residence_tx) %>%  mutate(level = "Network of treatment")
-netr_q55 <- aggregate_responses_average(responses_sdo_netr,network_of_tx) %>%  mutate(level = "Network of residence")
-hbt_q55 <- aggregate_responses_average(responses_sdo_hbt,board_of_tx) %>%  mutate(level =  "NHS board of treatment")
-hbr_q55 <- aggregate_responses_average(responses_sdo_hbr,board_of_residence_tx) %>%   mutate(level = "NHS board of residence")
-hbr2_q55 <- aggregate_responses_average(responses_sdo_hbr2,board_of_residence2) %>%   mutate(level = "NHS board of residence (alt)")
-cc_q55 <- aggregate_responses_average(responses_sdo_cc,cancer_centre) %>%  mutate(level = "Cancer centre")
-cg_q55 <- aggregate_responses_average(responses_sdo_nat,cancer_group_smr06) %>%  mutate(level = "Cancer group")
+nat_q55_cis  <- get_survey_CIs_ave(surveydesign_nat_q55,"scotland") %>%   mutate(level = "Scotland")
+nat_q55  <- aggregate_responses_average(surveydesign_nat_q55,scotland) 
+nat_q55 <- nat_q55_cis %>%   left_join(nat_q55,by = c("report_area","question"))
+
+nett_q55_cis  <- get_survey_CIs_ave(surveydesign_nett_q55,"network_of_tx") %>%   mutate(level = "Network of treatment")
+nett_q55  <- aggregate_responses_average(surveydesign_nett_q55,network_of_tx) 
+nett_q55 <- nett_q55_cis %>%   left_join(nett_q55,by = c("report_area","question"))
+
+netr_q55_cis  <- get_survey_CIs_ave(surveydesign_netr_q55,"network_of_residence_tx") %>%   mutate(level = "Network of residence")
+netr_q55  <- aggregate_responses_average(surveydesign_netr_q55,network_of_residence_tx) 
+netr_q55 <- netr_q55_cis %>%   left_join(netr_q55,by = c("report_area","question"))
+
+hbt_q55_cis  <- get_survey_CIs_ave(surveydesign_hbt_q55,"board_of_tx") %>%   mutate(level = "NHS board of treatment")
+hbt_q55  <- aggregate_responses_average(surveydesign_hbt_q55,board_of_tx) 
+hbt_q55 <- hbt_q55_cis %>%   left_join(hbt_q55,by = c("report_area","question"))
+
+hbr_q55_cis  <- get_survey_CIs_ave(surveydesign_hbr_q55,"board_of_residence_tx") %>%   mutate(level = "NHS board of residence")
+hbr_q55  <- aggregate_responses_average(surveydesign_hbr_q55,board_of_residence_tx) 
+hbr_q55 <- hbr_q55_cis %>%   left_join(hbr_q55,by = c("report_area","question"))
+
+hbr2_q55_cis  <- get_survey_CIs_ave(surveydesign_hbr2_q55,"board_of_residence2") %>%   mutate(level = "NHS board of residence (alt)")
+hbr2_q55  <- aggregate_responses_average(surveydesign_hbr2_q55,board_of_residence2) 
+hbr2_q55 <- hbr2_q55_cis %>%   left_join(hbr2_q55,by = c("report_area","question"))
+
+cc_q55_cis  <- get_survey_CIs_ave(surveydesign_cc_q55,"cancer_centre") %>%   mutate(level = "Cancer centre")
+cc_q55  <- aggregate_responses_average(surveydesign_cc_q55,cancer_centre) 
+cc_q55 <- cc_q55_cis %>%   left_join(cc_q55,by = c("report_area","question"))
+
+cg_q55_cis  <- get_survey_CIs_ave(surveydesign_nat_q55,"cancer_group_smr06") %>%   mutate(level = "Cancer group")
+cg_q55  <- aggregate_responses_average(surveydesign_nat_q55,cancer_group_smr06) 
+cg_q55 <- cg_q55_cis %>%   left_join(cg_q55,by = c("report_area","question"))
 
 #create q55 output for all levels####
 q55_output <- bind_rows(nat_q55,nett_q55,netr_q55,hbt_q55,hbr_q55,hbr2_q55,cc_q55,cg_q55)
@@ -261,17 +349,13 @@ q55_output <- q55_output %>%
                                       report_area ==  "Not allocated"~ "Not allocated" ,  
                                       report_area ==  "S116B"  ~ "Edinburgh Cancer Centre",                                              
                                       report_area ==  "T101H"  ~ "Ninewells Hospital" ,
-                                      report_area == "1" ~ "North of Scotland (NOSCAN)",
-                                      report_area == "2" ~ "South of Scotland (SCAN)",
-                                      report_area == "3" ~ "West of Scotland (WOSCAN)",
+                                      report_area == "1" ~ "NCA – North Cancer Alliance",
+                                      report_area == "2" ~ "SCAN – South East Cancer Network",
+                                      report_area == "3" ~ "WoSCAN – West of Scotland Cancer Network",
                                       report_area == "4" ~ "No network",
                                       TRUE ~ report_area)) %>% 
   select(-hb_name) %>% 
   arrange(level,report_area,question)
-
-#Rename under report_area_name "National Facility" to "NHS Golden Jubilee"
-q55_output <- q55_output %>%
-  mutate(report_area_name = if_else(report_area_name == "National Facility","NHS Golden Jubilee",report_area_name))
 
 hist_output <- readRDS(paste0(analysis_output_path,"q55_output.rds"))
 all.equal(hist_output$wgt_mean,q55_output$wgt_mean)
