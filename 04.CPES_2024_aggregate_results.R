@@ -111,11 +111,11 @@ hbr2_cis <- lapply(questions, function (x) get_survey_CIs(x,surveydesign_hbr,"bo
 hbr2 <- aggregate_responses(board_of_residence2,hbr2_wt) 
 hbr2 <- hbr2_cis %>%   left_join(hbr2,by = c("report_area","question","response_text_analysis"))
 
-cc_cis <- lapply(analysis_questions, function (x) get_survey_CIs(x,surveydesign_cc,"cancer_centre")) %>%  bind_rows() %>% mutate(level = "Cancer centre")
+cc_cis <- lapply(questions, function (x) get_survey_CIs(x,surveydesign_cc,"cancer_centre")) %>%  bind_rows() %>% mutate(level = "Cancer centre")
 cc <- aggregate_responses(cancer_centre,no_wt) 
 cc <- cc_cis %>%   left_join(cc,by = c("report_area","question","response_text_analysis"))
 
-cg_cis <- lapply(analysis_questions, function (x) get_survey_CIs(x,surveydesign_nat,"cancer_group_smr06")) %>%  bind_rows() %>% mutate(level = "Cancer group")
+cg_cis <- lapply(questions, function (x) get_survey_CIs(x,surveydesign_nat,"cancer_group_smr06")) %>%  bind_rows() %>% mutate(level = "Cancer group")
 cg <- aggregate_responses(cancer_group_smr06,nat_wt) 
 cg <- cg_cis %>%  left_join(cg,by = c("report_area","question","response_text_analysis"))
 
@@ -161,7 +161,6 @@ output <- master_question_table %>%
          n_wgt_includedresponses = sum(n_wgt_response,na.rm = TRUE),#recalculate to fill in gaps with na values
          wgt_percent = n_wgt_response / n_wgt_includedresponses,
          percent = n_response / n_includedresponses) %>% 
-  mutate(across(c(percent,wgt_percent), ~replace_na(.,0))) %>% 
   ungroup() %>% 
   #tidy tick all that apply responses
   filter(!(grepl("tick all that apply",question_type) == TRUE & response_option == "2")) %>% #remove 'no' values for tick all that apply %>% 
@@ -198,7 +197,10 @@ output <- master_question_table %>%
                                       report_area == "4" ~ "No network",
                                       TRUE ~ report_area)) %>% 
   select(-hb_name) %>% 
-  arrange(level,report_area,question, response_option)
+  arrange(level,report_area,question, response_option) %>% 
+  select(question,question_text,question_text_dashboard,response_text_analysis,topic,question_type,`2018_question`,`2015_question`,
+         response_option,report_area,level,n_response,n_wgt_response,n_includedresponses,n_wgt_includedresponses,
+         wgt_percent,percent,wgt_percent_low,wgt_percent_upp,report_area_name)
 
 #create cancer_group_output####
 cancer_group_output <- bind_rows(nat,cg)
@@ -216,7 +218,6 @@ cancer_group_output <- master_question_table %>%
          n_wgt_includedresponses = sum(n_wgt_response,na.rm = TRUE),#recalculate to fill in gaps with na values
          wgt_percent = n_wgt_response / n_wgt_includedresponses,
          percent = n_response / n_includedresponses) %>% 
-  mutate(across(c(percent,wgt_percent), ~replace_na(.,0))) %>% 
   ungroup() %>% 
   #tidy tick all that apply responses
   filter(!(grepl("tick all that apply",question_type) == TRUE & response_option == "2")) %>% #remove 'no' values for tick all that apply %>% 
@@ -236,31 +237,21 @@ cancer_group_output <- master_question_table %>%
                                      TRUE ~question_text)) %>%  
   mutate(question_text = question_text_2) %>% 
   select(-question_text_2) %>% 
-  arrange(level,report_area,question, response_option)
-
-#this is largely for checking purposes. Remove if not needed
-output <- output %>%  
+  arrange(level,report_area,question, response_option) %>% 
   select(question,question_text,question_text_dashboard,response_text_analysis,topic,question_type,`2018_question`,`2015_question`,
          response_option,report_area,level,n_response,n_wgt_response,n_includedresponses,n_wgt_includedresponses,
-         wgt_percent,percent,wgt_percent_low,wgt_percent_upp,report_area_name)
+         wgt_percent,percent,wgt_percent_low,wgt_percent_upp)
 
-
-hist_output <- readRDS(paste0(analysis_output_path,"output_20240820.rds"))
-all.equal(hist_output$level,output$level)
-sum(is.na(output$wgt_percent))
+hist_output <- readRDS(paste0(analysis_output_path,"output.rds"))
+all.equal(hist_output,output)
 all.equal(hist_output %>% select(-wgt_percent_low,-wgt_percent_upp,-report_area_name),output%>% select(-wgt_percent_low,-wgt_percent_upp,-report_area_name))
 write.xlsx(output,paste0(analysis_output_path,"output.xlsx"))
 saveRDS(output, paste0(analysis_output_path,"output.rds"))
 
-hist_cancer_group_output <- readRDS(paste0(analysis_output_path,"cancer_group_output_20240820.rds"))
+hist_cancer_group_output <- readRDS(paste0(analysis_output_path,"cancer_group_output.rds"))
 all.equal(hist_cancer_group_output$question_text_dashboard,cancer_group_output$question_text_dashboard)
 all.equal(hist_cancer_group_output %>% select(-wgt_percent_low,-wgt_percent_upp),
           cancer_group_output%>% select(-wgt_percent_low,-wgt_percent_upp))
-check <- cancer_group_output %>% 
-    left_join(hist_cancer_group_output, by = c("level", "report_area", "question", "question_text", "question_text_dashboard","response_text_analysis",
-                      "topic", "question_type", "2018_question","2015_question","response_option"),
-                        suffix = c("_new","_historic")) %>% 
-  mutate(check1 = if_else(percent_new != percent_historic,1,0))
 write.xlsx(cancer_group_output,paste0(analysis_output_path,"cancer_group_output.xlsx"))
 saveRDS(cancer_group_output, paste0(analysis_output_path,"cancer_group_output.rds"))
 
@@ -358,7 +349,7 @@ q55_output <- q55_output %>%
   arrange(level,report_area,question)
 
 hist_output <- readRDS(paste0(analysis_output_path,"q55_output.rds"))
-all.equal(hist_output$wgt_mean,q55_output$wgt_mean)
+all.equal(hist_output,q55_output)
 
 write.xlsx(q55_output,paste0(analysis_output_path,"q55_output.xlsx"))
 saveRDS(q55_output, paste0(analysis_output_path,"q55_output.rds"))
