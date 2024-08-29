@@ -110,6 +110,9 @@ geography$wgt_percent_upp_2015[geography$suppress == 1] <- NA
 #also suppress N_IncludedResponses? 
 geography$suppress <- NULL
 
+geography <- geography %>% 
+  mutate(report_area_name = str_replace(report_area_name,"NHS Orkney, Shetland & Western Isles","NHS Orkney, NHS Shetland & NHS Western Isles"))
+table(geography$report_area_name,useNA = c("always"))
 geography <- geography %>%
   select(question,question_text,question_text_dashboard,response_option,response_text_analysis,response_text_dashboard,topic,question_type,level,report_area,report_area_name,
          n_includedresponses,n_wgt_includedresponses,n_response,n_wgt_response,wgt_percent,wgt_percent_low,wgt_percent_upp,
