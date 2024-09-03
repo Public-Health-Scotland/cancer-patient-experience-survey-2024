@@ -236,6 +236,12 @@ cancer_group_output3 <- cancer_group_output3 %>%
          n_includedresponses_2018,n_response_2018,wgt_percent_2018,wgt_percent_low_2018,wgt_percent_upp_2018,comparability_2018,
          n_includedresponses_2015,n_response_2015,wgt_percent_2015,wgt_percent_low_2015,wgt_percent_upp_2015,comparability_2015) 
 
+#Correct CIs so that all in the range (0,1)
+sum(cancer_group_output3$wgt_percent_upp > 1,na.rm = TRUE)
+table(round(cancer_group_output3$wgt_percent_upp[cancer_group_output3$wgt_percent_upp > 1],2))
+cancer_group_output3 <- cancer_group_output3 %>% 
+  mutate(across(matches("_low"),function(x) if_else(x < 0, x*0,x)),
+         across(matches("_upp"),function(x) if_else(x > 1, x/x,x)))
 #check if the same as before
 hist.file <- readRDS(paste0(analysis_output_path,"cancer_group_output_2024.rds")) 
 all.equal(hist.file,cancer_group_output3)  
